@@ -130,7 +130,9 @@ export default function DiatonicPage() {
     setProgress(recordResult(MODE, correct));
     recordItem(MODE, itemId(currentDegree), correct);
     if (correct) {
-      void playChord(currentChord.notes, 4, "2n", 0.085);
+      // In hard mode advance() plays the next target chord; skip the feedback
+      // chord here so the two don't overlap and clash.
+      if (difficulty !== "hard") void playChord(currentChord.notes, 4, "2n", 0.085);
       advance(true);
     } else {
       setWrong(`${ring}:${position}`);

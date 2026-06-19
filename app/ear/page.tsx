@@ -13,7 +13,14 @@ import {
 import { QuizShell, type Feedback } from "@/components/QuizShell";
 import { playMidi, playSequence, playFeedback } from "@/lib/audio";
 import { midiToNoteName, pretty } from "@/lib/theory";
-import { loadProgress, recordItem, recordResult, type Progress } from "@/lib/storage";
+import {
+  loadMisses,
+  loadProgress,
+  pickWeighted,
+  recordItem,
+  recordResult,
+  type Progress,
+} from "@/lib/storage";
 
 const MODE = "ear";
 const START_MIDI = 60; // C4
@@ -74,12 +81,18 @@ export default function EarPage() {
     (play: boolean) => {
       const pool = candidates();
       const len = length === "single" ? 1 : MELODY_LEN[difficulty];
+      // Misses are tracked by pitch class; bias selection toward weak notes.
+      const misses = loadMisses(MODE);
       const notes: number[] = [];
       for (let i = 0; i < len; i++) {
-        let n = pool[Math.floor(Math.random() * pool.length)];
         // Avoid an immediate repeat so melodies have movement.
-        if (i > 0 && pool.length > 1) while (n === notes[i - 1]) n = pool[Math.floor(Math.random() * pool.length)];
-        notes.push(n);
+        const activePool = i > 0 && pool.length > 1 ? pool.filter((m) => m !== notes[i - 1]) : pool;
+        const midiMisses: Record<string, number> = {};
+        activePool.forEach((m) => {
+          midiMisses[String(m)] = misses[String(((m % 12) + 12) % 12)] ?? 0;
+        });
+        const chosen = pickWeighted(activePool.map(String), midiMisses);
+        notes.push(Number(chosen));
       }
       setSequence(notes);
       setPos(0);
