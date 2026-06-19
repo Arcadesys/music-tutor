@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/Button";
 import { Piano, type KeyMark } from "@/components/Piano";
+import {
+  Fretboard,
+  GUITAR_TUNING,
+  BASS_TUNING,
+  type FretMark,
+} from "@/components/Fretboard";
 import { QuizShell, type Feedback } from "@/components/QuizShell";
 import { playMidi, playFeedback } from "@/lib/audio";
 import { midiToNoteName, pretty } from "@/lib/theory";
@@ -11,8 +17,24 @@ import { loadProgress, recordResult, type Progress } from "@/lib/storage";
 const MODE = "ear";
 const START_MIDI = 60; // C4
 const WHITE_PC = new Set([0, 2, 4, 5, 7, 9, 11]);
+const FRETS = 12;
+
+type Instrument = "piano" | "guitar" | "bass";
+
+const TUNINGS: Record<"guitar" | "bass", number[]> = {
+  guitar: GUITAR_TUNING,
+  bass: BASS_TUNING,
+};
+
+/** Distinct MIDI pitches reachable on a fretboard, lowest to highest. */
+function fretboardMidis(tuning: number[]): number[] {
+  const set = new Set<number>();
+  for (const open of tuning) for (let f = 0; f <= FRETS; f++) set.add(open + f);
+  return [...set].sort((a, b) => a - b);
+}
 
 export default function EarPage() {
+  const [instrument, setInstrument] = useState<Instrument>("piano");
   const [octaves, setOctaves] = useState(1);
   const [naturalsOnly, setNaturalsOnly] = useState(false);
   const [target, setTarget] = useState<number | null>(null);
@@ -22,12 +44,17 @@ export default function EarPage() {
   const [progress, setProgress] = useState<Progress>({ correct: 0, attempts: 0, streak: 0, bestStreak: 0 });
 
   const candidates = useCallback(() => {
-    const out: number[] = [];
-    for (let m = START_MIDI; m <= START_MIDI + 12 * octaves; m++) {
-      if (!naturalsOnly || WHITE_PC.has(((m % 12) + 12) % 12)) out.push(m);
-    }
-    return out;
-  }, [octaves, naturalsOnly]);
+    const pool =
+      instrument === "piano"
+        ? Array.from(
+            { length: 12 * octaves + 1 },
+            (_, i) => START_MIDI + i,
+          )
+        : fretboardMidis(TUNINGS[instrument]);
+    return pool.filter(
+      (m) => !naturalsOnly || WHITE_PC.has(((m % 12) + 12) % 12),
+    );
+  }, [instrument, octaves, naturalsOnly]);
 
   const newTarget = useCallback(
     (play: boolean) => {
@@ -65,7 +92,7 @@ export default function EarPage() {
     }
   }
 
-  const marks: Record<number, KeyMark> = {};
+  const marks: Record<number, KeyMark & FretMark> = {};
   if (solved && target != null) marks[target] = { className: "fill-emerald-400" };
   if (wrong != null && !solved) marks[wrong] = { className: "fill-rose-500" };
 
@@ -99,28 +126,50 @@ export default function EarPage() {
         </>
       }
     >
-      <Piano startMidi={START_MIDI} whiteCount={whiteCount} marks={marks} onKeyClick={guess} width={620} />
+      {instrument === "piano" ? (
+        <Piano startMidi={START_MIDI} whiteCount={whiteCount} marks={marks} onKeyClick={guess} width={620} />
+      ) : (
+        <Fretboard tuning={TUNINGS[instrument]} marks={marks} onFretClick={guess} width={700} />
+      )}
 
       <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-        <span className="text-slate-400">Range:</span>
-        {[1, 2].map((o) => (
+        <span className="text-slate-400">Instrument:</span>
+        {(["piano", "guitar", "bass"] as Instrument[]).map((inst) => (
           <Button
-            key={o}
-            variant={octaves === o ? "primary" : "ghost"}
-            className="px-3 py-1.5 text-sm"
-            onClick={() => {
-              setOctaves(o);
-            }}
+            key={inst}
+            variant={instrument === inst ? "primary" : "ghost"}
+            className="px-3 py-1.5 text-sm capitalize"
+            onClick={() => setInstrument(inst)}
           >
-            {o} octave{o > 1 ? "s" : ""}
+            {inst}
           </Button>
         ))}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+        {instrument === "piano" && (
+          <>
+            <span className="text-slate-400">Range:</span>
+            {[1, 2].map((o) => (
+              <Button
+                key={o}
+                variant={octaves === o ? "primary" : "ghost"}
+                className="px-3 py-1.5 text-sm"
+                onClick={() => {
+                  setOctaves(o);
+                }}
+              >
+                {o} octave{o > 1 ? "s" : ""}
+              </Button>
+            ))}
+          </>
+        )}
         <Button
           variant={naturalsOnly ? "primary" : "ghost"}
           className="ml-3 px-3 py-1.5 text-sm"
           onClick={() => setNaturalsOnly((n) => !n)}
         >
-          {naturalsOnly ? "White keys only" : "All keys"}
+          {naturalsOnly ? "Naturals only" : "All notes"}
         </Button>
       </div>
     </QuizShell>
