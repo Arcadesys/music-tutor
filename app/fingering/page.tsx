@@ -2,27 +2,33 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/Button";
+import { DifficultySelect, type Difficulty } from "@/components/DifficultySelect";
 import { Piano } from "@/components/Piano";
 import { QuizShell, type Feedback } from "@/components/QuizShell";
 import { playNote, playScale, playFeedback } from "@/lib/audio";
 import { fingeringFor } from "@/lib/fingerings";
 import { ascendingScaleMidis, keysAroundCircle, majorScale, pretty } from "@/lib/theory";
-import { loadProgress, recordResult, type Progress } from "@/lib/storage";
+import { loadMisses, loadProgress, pickWeighted, recordItem, recordResult, type Progress } from "@/lib/storage";
 
 type Hand = "rh" | "lh";
 type Direction = "clockwise" | "counterclockwise" | "random";
 
 const MODE = "fingering";
 const DEGREE = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th (octave)"];
+const ALL_KEYS = keysAroundCircle("clockwise");
 
 export default function FingeringPage() {
   const [hand, setHand] = useState<Hand>("rh");
   const [direction, setDirection] = useState<Direction>("clockwise");
+  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [keyIndex, setKeyIndex] = useState(0);
+  const [randomKey, setRandomKey] = useState(ALL_KEYS[0]);
   const [step, setStep] = useState(0);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [progress, setProgress] = useState<Progress>({ correct: 0, attempts: 0, streak: 0, bestStreak: 0 });
   const [study, setStudy] = useState(false);
+
+  const reveal = difficulty !== "hard";
 
   useEffect(() => setProgress(loadProgress(MODE)), []);
 
@@ -30,7 +36,7 @@ export default function FingeringPage() {
     () => (direction === "random" ? null : keysAroundCircle(direction)),
     [direction],
   );
-  const currentKey = keys ? keys[keyIndex % keys.length] : keysAroundCircle("clockwise")[keyIndex % 12];
+  const currentKey = keys ? keys[keyIndex % keys.length] : randomKey;
 
   const scale = useMemo(() => majorScale(currentKey), [currentKey]);
   const midis = useMemo(() => ascendingScaleMidis(scale, 4), [scale]);
@@ -41,7 +47,8 @@ export default function FingeringPage() {
   function nextKey() {
     setStep(0);
     setFeedback(null);
-    if (direction === "random") setKeyIndex(Math.floor(Math.random() * 12));
+    // Random direction biases toward keys the user has been missing.
+    if (direction === "random") setRandomKey(pickWeighted(ALL_KEYS, loadMisses(MODE)));
     else setKeyIndex((i) => i + 1);
   }
 
@@ -50,6 +57,7 @@ export default function FingeringPage() {
     const correct = finger === fingers[step];
     void playFeedback(correct);
     setProgress(recordResult(MODE, correct));
+    recordItem(MODE, currentKey, correct);
     if (correct) {
       void playNote(scale[step % 7], 4 + Math.floor(step / 7));
       setFeedback(null);
@@ -77,7 +85,7 @@ export default function FingeringPage() {
       title="Scale Fingering"
       progress={progress}
       feedback={feedback}
-      feedbackMessage={`✗ That note uses finger ${fingers[step] ?? ""}`}
+      feedbackMessage={reveal ? `✗ That note uses finger ${fingers[step] ?? ""}` : "✗ Try again"}
       prompt={
         <span>
           {pretty(currentKey)} major — {handLabel}
@@ -98,6 +106,12 @@ export default function FingeringPage() {
         </>
       }
     >
+      <DifficultySelect
+        value={difficulty}
+        onChange={setDifficulty}
+        hint={reveal ? "The finger is shown after a miss." : "No reveals — recall the fingering yourself."}
+      />
+
       <Piano startMidi={60} whiteCount={15} marks={marks} width={620} />
 
       {study || complete ? (
@@ -146,6 +160,7 @@ export default function FingeringPage() {
             onClick={() => {
               setDirection(d);
               setKeyIndex(0);
+              if (d === "random") setRandomKey(pickWeighted(ALL_KEYS, loadMisses(MODE)));
               setStep(0);
               setFeedback(null);
             }}

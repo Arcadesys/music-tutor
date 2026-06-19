@@ -58,8 +58,18 @@ export async function playScale(notes: string[], startOctave = 4, noteDur = 0.32
   });
 }
 
-/** Play spelled notes together as a chord. */
-export async function playChord(notes: string[], octave = 4, duration = "2n"): Promise<void> {
+/**
+ * Play spelled notes as a chord. With `roll` > 0 the notes are strummed that
+ * many seconds apart (root first) so each chord tone is clearly heard rather
+ * than blurring into the root; they still overlap and ring together. With
+ * `roll` = 0 they sound as a simultaneous block chord.
+ */
+export async function playChord(
+  notes: string[],
+  octave = 4,
+  duration = "2n",
+  roll = 0,
+): Promise<void> {
   await initAudio();
   const names: string[] = [];
   let prev = -Infinity;
@@ -73,7 +83,21 @@ export async function playChord(notes: string[], octave = 4, duration = "2n"): P
     names.push(midiToToneName(m));
     prev = m;
   }
-  sampler!.triggerAttackRelease(names, duration);
+  if (roll > 0) {
+    const now = Tone.now();
+    names.forEach((n, i) => sampler!.triggerAttackRelease(n, duration, now + i * roll));
+  } else {
+    sampler!.triggerAttackRelease(names, duration);
+  }
+}
+
+/** Play a sequence of MIDI notes one after another (a melody / phrase). */
+export async function playSequence(midis: number[], noteDur = 0.5): Promise<void> {
+  await initAudio();
+  const now = Tone.now();
+  midis.forEach((m, i) => {
+    sampler!.triggerAttackRelease(midiToToneName(m), noteDur * 0.9, now + i * noteDur);
+  });
 }
 
 /** Short non-pitched cue for answer feedback (rising = correct, falling = wrong). */
