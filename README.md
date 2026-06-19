@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Music Tutor
 
-## Getting Started
+A music-theory drilling app — built to learn by **ear and interaction** rather than by
+squinting at tiny notation. Three quiz modes:
 
-First, run the development server:
+1. **Scale Fingering** (`/fingering`) — RH/LH piano fingering for every major scale. Walk
+   the keys clockwise (sharps) or counterclockwise (flats), or randomize. Hear each scale.
+2. **Circle of Fifths** (`/circle`) — quiz key signatures, relative minors, and fifths by
+   clicking the circle; the answer key plays back.
+3. **Diatonic Chords** (`/diatonic`) — click a key's diatonic chords in order around the
+   circle, with an optional **♭VII** (the Mixolydian/borrowed chord) appended.
+
+## Stack
+
+- **Next.js (App Router) + TypeScript**, deployable on Vercel (fully static).
+- **Tailwind CSS v4** for large, high-contrast, keyboard-navigable UI.
+- **Tone.js** piano sampler for audio. Audio starts on first user gesture.
+- **localStorage** for streaks/progress (no backend).
+- **Vitest** for the music-theory core.
+
+## Project layout
+
+- `lib/theory.ts` — pure, tested core: scale spelling, diatonic triads, ♭VII, circle of
+  fifths, note→MIDI helpers.
+- `lib/fingerings.ts` — standard one-octave major-scale fingerings (RH/LH).
+- `lib/audio.ts` — Tone.js wrapper (`playNote` / `playScale` / `playChord` / `playFeedback`).
+- `lib/quiz.ts` — circle-of-fifths question generators.
+- `lib/storage.ts` — progress persistence.
+- `components/` — `Piano`, `CircleOfFifths`, `QuizShell`, `ScoreBoard`, `Button`.
+- `app/` — home + the three drill routes.
+
+## Develop
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev        # dev server
+npm test           # run the theory unit tests
+npm run build      # production build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Extending
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The shared `QuizShell` + tested `theory.ts` make new drills cheap: add a question generator
+and a route. Natural next steps (from the practice notes that inspired this): diatonic chords
+in each **mode**, dedicated **ear-training** intervals/melodies, and chord-chart reading.
