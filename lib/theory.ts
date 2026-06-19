@@ -3,6 +3,32 @@
 
 export type Quality = "major" | "minor" | "diminished" | "augmented";
 
+/** The seven diatonic modes, named by their classical Greek labels. */
+export type Mode =
+  | "ionian"
+  | "dorian"
+  | "phrygian"
+  | "lydian"
+  | "mixolydian"
+  | "aeolian"
+  | "locrian";
+
+/** Scale degree (0-based) each mode starts on within the parent major scale. */
+const MODE_DEGREE: Record<Mode, number> = {
+  ionian: 0,
+  dorian: 1,
+  phrygian: 2,
+  lydian: 3,
+  mixolydian: 4,
+  aeolian: 5,
+  locrian: 6,
+};
+
+/** Human-facing label for each mode, e.g. "Mixolydian". */
+export function modeLabel(mode: Mode): string {
+  return mode.charAt(0).toUpperCase() + mode.slice(1);
+}
+
 export interface Chord {
   /** Roman-numeral label, e.g. "I", "ii", "vii°", "♭VII". */
   roman: string;
@@ -75,20 +101,30 @@ function spellInterval(root: string, letterSteps: number, semitones: number): st
   return noteName(l, accidentalFor(l, targetPc));
 }
 
-/** Notes of a major scale with correct enharmonic spelling (one note per letter). */
-export function majorScale(tonic: string): string[] {
+/**
+ * Notes of a diatonic mode with correct enharmonic spelling (one note per
+ * letter). The step pattern is the major-scale pattern rotated to start on the
+ * mode's degree, so e.g. Dorian uses the major steps beginning at degree 2.
+ */
+export function modeScale(tonic: string, mode: Mode = "ionian"): string[] {
   const { letter, acc } = parseNote(tonic);
   const startLetterIdx = LETTERS.indexOf(letter as (typeof LETTERS)[number]);
   const startPc = pitchClassOf(letter, acc);
+  const offset = MODE_DEGREE[mode];
   const notes: string[] = [];
   let pc = startPc;
   for (let i = 0; i < 7; i++) {
     const l = LETTERS[(startLetterIdx + i) % 7];
-    const targetPc = i === 0 ? startPc : (pc + MAJOR_STEPS[i - 1]) % 12;
+    const targetPc = i === 0 ? startPc : (pc + MAJOR_STEPS[(offset + i - 1) % 7]) % 12;
     notes.push(noteName(l, accidentalFor(l, targetPc)));
     pc = targetPc;
   }
   return notes;
+}
+
+/** Notes of a major (Ionian) scale. Thin wrapper over {@link modeScale}. */
+export function majorScale(tonic: string): string[] {
+  return modeScale(tonic, "ionian");
 }
 
 function qualityFromTriad(rootPc: number, thirdPc: number, fifthPc: number): Quality {
@@ -102,26 +138,40 @@ function qualityFromTriad(rootPc: number, thirdPc: number, fifthPc: number): Qua
 }
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
+/** Semitones above the tonic for each major-scale degree. */
+const MAJOR_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
 
-function romanFor(degree: number, quality: Quality): string {
+/** How far a degree is altered vs. its parallel-major counterpart: -1 ♭, +1 ♯. */
+function degreeAlter(pc: number, tonicPc: number, degree: number): number {
+  const interval = (((pc - tonicPc) % 12) + 12) % 12;
+  let d = interval - MAJOR_INTERVALS[degree];
+  if (d > 6) d -= 12;
+  if (d < -6) d += 12;
+  return d;
+}
+
+/** Roman numeral for a degree, with quality casing and any chromatic prefix. */
+function romanFor(degree: number, quality: Quality, alter = 0): string {
   let r = ROMAN[degree];
   if (quality === "minor" || quality === "diminished") r = r.toLowerCase();
   if (quality === "diminished") r += "°";
   if (quality === "augmented") r += "+";
-  return r;
+  const prefix = alter < 0 ? "♭".repeat(-alter) : alter > 0 ? "♯".repeat(alter) : "";
+  return prefix + r;
 }
 
-/** The seven diatonic triads of a major key, by scale degree. */
-export function diatonicTriads(tonic: string): Chord[] {
-  const scale = majorScale(tonic);
+/** The seven diatonic triads of a key in the given mode, by scale degree. */
+export function diatonicTriads(tonic: string, mode: Mode = "ionian"): Chord[] {
+  const scale = modeScale(tonic, mode);
   const pcs = scale.map(pitchClass);
+  const tonicPc = pcs[0];
   const chords: Chord[] = [];
   for (let i = 0; i < 7; i++) {
     const third = (i + 2) % 7;
     const fifth = (i + 4) % 7;
     const quality = qualityFromTriad(pcs[i], pcs[third], pcs[fifth]);
     chords.push({
-      roman: romanFor(i, quality),
+      roman: romanFor(i, quality, degreeAlter(pcs[i], tonicPc, i)),
       root: scale[i],
       quality,
       notes: [scale[i], scale[third], scale[fifth]],
@@ -143,12 +193,6 @@ export function flatSevenChord(tonic: string): Chord {
     quality: "major",
     notes: [root, spellInterval(root, 2, 4), spellInterval(root, 4, 7)],
   };
-}
-
-/** Diatonic triads plus, optionally, the ♭VII appended. */
-export function chordSequence(tonic: string, includeFlatSeven = false): Chord[] {
-  const chords = diatonicTriads(tonic);
-  return includeFlatSeven ? [...chords, flatSevenChord(tonic)] : chords;
 }
 
 /** The circle of fifths, clockwise from C (position 0). */
@@ -215,6 +259,20 @@ export function midiToNoteName(midi: number): string {
   const pc = ((midi % 12) + 12) % 12;
   const octave = Math.floor(midi / 12) - 1;
   return `${SHARP_NAMES[pc]}${octave}`;
+}
+
+// Movable-do solfège: Do = tonic. Lowered degrees use the descending forms
+// (ra/me/se/le/te); the raised fourth uses fi (Lydian). Indexed by semitones
+// above the tonic.
+const SOLFEGE = ["do", "ra", "re", "me", "mi", "fa", "fi", "sol", "le", "la", "te", "ti"];
+
+/**
+ * Movable-do solfège syllable for a note relative to a tonic, e.g.
+ * solfege("E", "C") → "mi", solfege("Bb", "C") → "te".
+ */
+export function solfege(note: string, tonic: string): string {
+  const interval = (((pitchClass(note) - pitchClass(tonic)) % 12) + 12) % 12;
+  return SOLFEGE[interval];
 }
 
 /** Convert ascii accidentals to pretty Unicode symbols for display. */
