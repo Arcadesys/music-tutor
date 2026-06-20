@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/Button";
 import { DifficultySelect, type Difficulty } from "@/components/DifficultySelect";
 import { Piano } from "@/components/Piano";
@@ -8,7 +8,7 @@ import { QuizShell, type Feedback } from "@/components/QuizShell";
 import { playNote, playScale, playFeedback } from "@/lib/audio";
 import { fingeringFor } from "@/lib/fingerings";
 import { ascendingScaleMidis, keysAroundCircle, majorScale, pretty } from "@/lib/theory";
-import { loadMisses, loadProgress, pickWeighted, recordItem, recordResult, type Progress } from "@/lib/storage";
+import { loadMisses, nextProgress, pickWeighted, recordItem, type Progress } from "@/lib/storage";
 
 type Hand = "rh" | "lh";
 type Direction = "clockwise" | "counterclockwise" | "random";
@@ -29,8 +29,6 @@ export default function FingeringPage() {
   const [study, setStudy] = useState(false);
 
   const reveal = difficulty !== "hard";
-
-  useEffect(() => setProgress(loadProgress(MODE)), []);
 
   const keys = useMemo(
     () => (direction === "random" ? null : keysAroundCircle(direction)),
@@ -56,7 +54,7 @@ export default function FingeringPage() {
     if (complete) return;
     const correct = finger === fingers[step];
     void playFeedback(correct);
-    setProgress(recordResult(MODE, correct));
+    setProgress((p) => nextProgress(p, correct));
     recordItem(MODE, currentKey, correct);
     if (correct) {
       void playNote(scale[step % 7], 4 + Math.floor(step / 7));

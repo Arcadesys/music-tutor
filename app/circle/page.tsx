@@ -8,7 +8,7 @@ import { QuizShell, type Feedback } from "@/components/QuizShell";
 import { playScale, playFeedback } from "@/lib/audio";
 import { CIRCLE, majorScale, pretty } from "@/lib/theory";
 import { randomCircleQuestion, type CircleQuestion } from "@/lib/quiz";
-import { loadProgress, recordItem, recordResult, type Progress } from "@/lib/storage";
+import { nextProgress, recordItem, type Progress } from "@/lib/storage";
 
 const MODE = "circle";
 
@@ -29,7 +29,6 @@ export default function CirclePage() {
   const reveal = difficulty !== "hard";
 
   useEffect(() => {
-    setProgress(loadProgress(MODE));
     setQuestion(randomCircleQuestion());
   }, []);
 
@@ -44,7 +43,7 @@ export default function CirclePage() {
     if (!question || solved) return;
     const correct = ring === question.answerRing && position === question.answerPosition;
     void playFeedback(correct);
-    setProgress(recordResult(MODE, correct));
+    setProgress((p) => nextProgress(p, correct));
     recordItem(MODE, `${question.answerRing}:${question.answerPosition}`, correct);
     if (correct) {
       setSolved(true);

@@ -18,10 +18,9 @@ import {
 } from "@/lib/theory";
 import {
   loadMisses,
-  loadProgress,
+  nextProgress,
   pickWeighted,
   recordItem,
-  recordResult,
   type Progress,
 } from "@/lib/storage";
 
@@ -65,8 +64,6 @@ export default function DiatonicPage() {
   const [wrong, setWrong] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [progress, setProgress] = useState<Progress>({ correct: 0, attempts: 0, streak: 0, bestStreak: 0 });
-
-  useEffect(() => setProgress(loadProgress(MODE)), []);
 
   const chords = useMemo(() => diatonicTriads(musicKey, mode), [musicKey, mode]);
   const wedges = useMemo(() => chords.map(wedgeForChord), [chords]);
@@ -127,7 +124,7 @@ export default function DiatonicPage() {
     const t = wedges[currentDegree];
     const correct = ring === t.ring && position === t.position;
     void playFeedback(correct);
-    setProgress(recordResult(MODE, correct));
+    setProgress((p) => nextProgress(p, correct));
     recordItem(MODE, itemId(currentDegree), correct);
     if (correct) {
       // In hard mode advance() plays the next target chord; skip the feedback

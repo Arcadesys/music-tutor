@@ -20,15 +20,19 @@ export function loadProgress(mode: string): Progress {
   }
 }
 
-export function recordResult(mode: string, correct: boolean): Progress {
-  const prev = loadProgress(mode);
+/** Tally one result onto an existing Progress. Pure — does not persist. */
+export function nextProgress(prev: Progress, correct: boolean): Progress {
   const streak = correct ? prev.streak + 1 : 0;
-  const next: Progress = {
+  return {
     correct: prev.correct + (correct ? 1 : 0),
     attempts: prev.attempts + 1,
     streak,
     bestStreak: Math.max(prev.bestStreak, streak),
   };
+}
+
+export function recordResult(mode: string, correct: boolean): Progress {
+  const next = nextProgress(loadProgress(mode), correct);
   if (typeof window !== "undefined") {
     try {
       window.localStorage.setItem(key(mode), JSON.stringify(next));

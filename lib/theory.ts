@@ -261,6 +261,32 @@ export function midiToNoteName(midi: number): string {
   return `${SHARP_NAMES[pc]}${octave}`;
 }
 
+/** A named interval by its size in semitones (0 = unison … 12 = octave). */
+export interface IntervalName {
+  semitones: number;
+  /** Compact label, e.g. "m3", "P5", "TT". */
+  short: string;
+  /** Full label, e.g. "Minor 3rd", "Perfect 5th". */
+  long: string;
+}
+
+/** The thirteen intervals within an octave, indexed by semitone count. */
+export const INTERVAL_NAMES: IntervalName[] = [
+  { semitones: 0, short: "P1", long: "Unison" },
+  { semitones: 1, short: "m2", long: "Minor 2nd" },
+  { semitones: 2, short: "M2", long: "Major 2nd" },
+  { semitones: 3, short: "m3", long: "Minor 3rd" },
+  { semitones: 4, short: "M3", long: "Major 3rd" },
+  { semitones: 5, short: "P4", long: "Perfect 4th" },
+  { semitones: 6, short: "TT", long: "Tritone" },
+  { semitones: 7, short: "P5", long: "Perfect 5th" },
+  { semitones: 8, short: "m6", long: "Minor 6th" },
+  { semitones: 9, short: "M6", long: "Major 6th" },
+  { semitones: 10, short: "m7", long: "Minor 7th" },
+  { semitones: 11, short: "M7", long: "Major 7th" },
+  { semitones: 12, short: "P8", long: "Octave" },
+];
+
 // Movable-do solfège: Do = tonic. Lowered degrees use the descending forms
 // (ra/me/se/le/te); the raised fourth uses fi (Lydian). Indexed by semitones
 // above the tonic.

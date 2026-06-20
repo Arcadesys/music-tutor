@@ -100,6 +100,26 @@ export async function playSequence(midis: number[], noteDur = 0.5): Promise<void
   });
 }
 
+/**
+ * Play a fast burst of random notes to scramble working-memory pitch tracking,
+ * so relative-pitch cues can't carry between trials (perfect-pitch practice).
+ * Starts `startDelay` seconds after now so it can follow a guess/feedback note.
+ */
+export async function playScramble(
+  count = 6,
+  startDelay = 0,
+  lo = 48,
+  hi = 84,
+  noteDur = 0.13,
+): Promise<void> {
+  await initAudio();
+  const start = Tone.now() + startDelay;
+  for (let i = 0; i < count; i++) {
+    const m = lo + Math.floor(Math.random() * (hi - lo + 1));
+    sampler!.triggerAttackRelease(midiToToneName(m), noteDur * 0.9, start + i * noteDur);
+  }
+}
+
 /** Short non-pitched cue for answer feedback (rising = correct, falling = wrong). */
 export async function playFeedback(correct: boolean): Promise<void> {
   await initAudio();
