@@ -8,6 +8,7 @@ import {
   keysAroundCircle,
   CIRCLE,
   findCircleKey,
+  INTERVAL_NAMES,
 } from "@/lib/theory";
 
 describe("majorScale", () => {
@@ -159,5 +160,15 @@ describe("circle of fifths", () => {
 
   it("resolves enharmonic spellings", () => {
     expect(findCircleKey("F#")?.major).toBe("Gb");
+  });
+});
+
+describe("INTERVAL_NAMES", () => {
+  it("covers unison through octave, indexed by semitone count", () => {
+    expect(INTERVAL_NAMES).toHaveLength(13);
+    INTERVAL_NAMES.forEach((iv, i) => expect(iv.semitones).toBe(i));
+    expect(INTERVAL_NAMES[0].long).toBe("Unison");
+    expect(INTERVAL_NAMES[7].short).toBe("P5");
+    expect(INTERVAL_NAMES[12].long).toBe("Octave");
   });
 });
