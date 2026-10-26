@@ -14,8 +14,15 @@ export async function initAudio(): Promise<void> {
   if (!sampler) {
     sampler = new Tone.Sampler({
       urls: {
-        C2: "C2.mp3", "F#2": "Fs2.mp3", C3: "C3.mp3", "F#3": "Fs3.mp3",
-        C4: "C4.mp3", "F#4": "Fs4.mp3", C5: "C5.mp3", "F#5": "Fs5.mp3", C6: "C6.mp3",
+        C2: "C2.mp3",
+        "F#2": "Fs2.mp3",
+        C3: "C3.mp3",
+        "F#3": "Fs3.mp3",
+        C4: "C4.mp3",
+        "F#4": "Fs4.mp3",
+        C5: "C5.mp3",
+        "F#5": "Fs5.mp3",
+        C6: "C6.mp3",
       },
       baseUrl: "https://tonejs.github.io/audio/salamander/",
       release: 1,
@@ -34,9 +41,16 @@ function midiToToneName(midi: number): string {
 }
 
 /** Play one spelled note. */
-export async function playNote(note: string, octave = 4, duration = "8n"): Promise<void> {
+export async function playNote(
+  note: string,
+  octave = 4,
+  duration = "8n",
+): Promise<void> {
   await initAudio();
-  sampler!.triggerAttackRelease(midiToToneName(noteToMidi(note, octave)), duration);
+  sampler!.triggerAttackRelease(
+    midiToToneName(noteToMidi(note, octave)),
+    duration,
+  );
 }
 
 /** Play a note by MIDI number. */
@@ -49,12 +63,20 @@ export async function playMidi(midi: number, duration = "4n"): Promise<void> {
  * Play a list of spelled notes as an ascending scale, then add the octave tonic.
  * Handles octave wrapping so the line always rises.
  */
-export async function playScale(notes: string[], startOctave = 4, noteDur = 0.32): Promise<void> {
+export async function playScale(
+  notes: string[],
+  startOctave = 4,
+  noteDur = 0.32,
+): Promise<void> {
   await initAudio();
   const midis = ascendingScaleMidis(notes, startOctave);
   const now = Tone.now();
   midis.forEach((m, i) => {
-    sampler!.triggerAttackRelease(midiToToneName(m), noteDur * 0.95, now + i * noteDur);
+    sampler!.triggerAttackRelease(
+      midiToToneName(m),
+      noteDur * 0.95,
+      now + i * noteDur,
+    );
   });
 }
 
@@ -85,18 +107,27 @@ export async function playChord(
   }
   if (roll > 0) {
     const now = Tone.now();
-    names.forEach((n, i) => sampler!.triggerAttackRelease(n, duration, now + i * roll));
+    names.forEach((n, i) =>
+      sampler!.triggerAttackRelease(n, duration, now + i * roll),
+    );
   } else {
     sampler!.triggerAttackRelease(names, duration);
   }
 }
 
 /** Play a sequence of MIDI notes one after another (a melody / phrase). */
-export async function playSequence(midis: number[], noteDur = 0.5): Promise<void> {
+export async function playSequence(
+  midis: number[],
+  noteDur = 0.5,
+): Promise<void> {
   await initAudio();
   const now = Tone.now();
   midis.forEach((m, i) => {
-    sampler!.triggerAttackRelease(midiToToneName(m), noteDur * 0.9, now + i * noteDur);
+    sampler!.triggerAttackRelease(
+      midiToToneName(m),
+      noteDur * 0.9,
+      now + i * noteDur,
+    );
   });
 }
 
@@ -116,7 +147,11 @@ export async function playScramble(
   const start = Tone.now() + startDelay;
   for (let i = 0; i < count; i++) {
     const m = lo + Math.floor(Math.random() * (hi - lo + 1));
-    sampler!.triggerAttackRelease(midiToToneName(m), noteDur * 0.9, start + i * noteDur);
+    sampler!.triggerAttackRelease(
+      midiToToneName(m),
+      noteDur * 0.9,
+      start + i * noteDur,
+    );
   }
 }
 
@@ -125,5 +160,38 @@ export async function playFeedback(correct: boolean): Promise<void> {
   await initAudio();
   const now = Tone.now();
   const notes = correct ? ["C5", "G5"] : ["G3", "C3"];
-  notes.forEach((n, i) => sampler!.triggerAttackRelease(n, "16n", now + i * 0.09));
+  notes.forEach((n, i) =>
+    sampler!.triggerAttackRelease(n, "16n", now + i * 0.09),
+  );
+}
+
+// Practice uses a built-in synthesized reference, without downloading samples.
+import { timedEvents, type PlaybackEvent } from "./practice";
+let practiceVoice: Tone.PolySynth | null = null;
+let practiceGeneration = 0;
+export function stopPracticeAudio(): void {
+  practiceGeneration++;
+  practiceVoice?.dispose();
+  practiceVoice = null;
+}
+export async function playPracticeEvents(
+  events: PlaybackEvent[],
+  tempo: number,
+): Promise<void> {
+  stopPracticeAudio();
+  const generation = practiceGeneration;
+  await Tone.start();
+  if (generation !== practiceGeneration) return;
+  practiceVoice = new Tone.PolySynth(Tone.Synth, {
+    volume: -16,
+    envelope: { attack: 0.015, decay: 0.1, sustain: 0.35, release: 0.15 },
+  }).toDestination();
+  const start = Tone.now() + 0.05;
+  for (const event of timedEvents(events, tempo)) {
+    practiceVoice.triggerAttackRelease(
+      event.midis.map(midiToToneName),
+      event.duration,
+      start + event.seconds,
+    );
+  }
 }

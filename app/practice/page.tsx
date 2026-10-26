@@ -1,377 +1,760 @@
 "use client";
-
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { TechniqueFingeringGuide } from "@/components/TechniqueFingeringGuide";
 import { MusicTutorNav } from "@/components/MusicTutorNav";
-import { playChord, playScale } from "@/lib/audio";
-import { diatonicTriads, modeScale, pretty } from "@/lib/theory";
-import { cycleFor, rotateCycle, splitSessionMinutes, tonicFor, type PracticeMode } from "@/lib/practice";
-
+import { playPracticeEvents, stopPracticeAudio } from "@/lib/audio";
+import {
+  ACTIVITIES,
+  PATTERNS,
+  PROGRESSIONS,
+  RATINGS,
+  accompanimentEvents,
+  chartFor,
+  cycleFor,
+  nextActivity,
+  nextSessionKey,
+  sessionPlan,
+  techniqueEvents,
+  techniqueLabels,
+  type PracticeAttempt,
+  type PracticeMode,
+  type Rating,
+} from "@/lib/practice";
+import { readAttempts, writeAttempts } from "@/lib/storage";
+import { pretty } from "@/lib/theory";
 const SETTINGS_KEY = "music-tutor-practice-settings-v1";
+const POSITIONS_KEY = "music-tutor-practice-positions-v1";
 const DURATIONS = [10, 12, 15, 20, 25, 30];
-
-function formatTime(seconds: number): string {
-  const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
-  const remainder = (seconds % 60).toString().padStart(2, "0");
-  return minutes + ":" + remainder;
-}
-
-const STEPS = [
-  { title: "Hanon warmup", detail: "Wake up the hands with relaxed, even repetitions." },
-  { title: "Scales · cycle of fourths", detail: "Move through all twelve keys, one fourth at a time." },
-  { title: "Arpeggios · cycle of fourths", detail: "Use the same key order to connect the scale to its tonic triad." },
-];
-
+const HANDS = ["Both hands", "Right hand", "Left hand"];
 export default function PracticePage() {
   const [mode, setMode] = useState<PracticeMode>("major");
-  const [startingKey, setStartingKey] = useState("C");
-  const [hands, setHands] = useState("Both hands");
+  const [positions, setPositions] = useState({ major: "C", minor: "Am" });
   const [tempo, setTempo] = useState(72);
+  const [hands, setHands] = useState("Both hands");
   const [hanonNumber, setHanonNumber] = useState(1);
   const [duration, setDuration] = useState(30);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [step, setStep] = useState(-1);
   const [keyIndex, setKeyIndex] = useState(0);
-  const [secondsLeft, setSecondsLeft] = useState(30 * 60);
+  const [remaining, setRemaining] = useState(1800);
   const [running, setRunning] = useState(false);
-
+  const [progressionId, setProgressionId] = useState("major-1451");
+  const [patternId, setPatternId] = useState("roots");
+  const [display, setDisplay] = useState("both");
+  const [revealed, setRevealed] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [attempts, setAttempts] = useState<PracticeAttempt[]>([]);
+  const [warning, setWarning] = useState("");
+  const [canSave, setCanSave] = useState(true);
+  const [status, setStatus] = useState("");
+  const [audioError, setAudioError] = useState("");
+  const start = positions[mode];
+  const plan = sessionPlan(mode, start, duration);
+  const currentKey = plan.keys[keyIndex];
+  const progression =
+    PROGRESSIONS.find((p) => p.id === progressionId && p.mode === mode) ??
+    PROGRESSIONS.find((p) => p.mode === mode)!;
+  const pattern = PATTERNS.find((p) => p.id === patternId)!;
+  const chart = chartFor(currentKey, progression);
+  const events =
+    step === 1 || step === 2
+      ? techniqueEvents(currentKey, mode, step === 2)
+      : accompanimentEvents(chart, pattern);
+  const complete = step === 5;
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(SETTINGS_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw) as {
-          mode?: PracticeMode;
-          startingKey?: string;
-          hands?: string;
-          tempo?: number;
-          hanonNumber?: number;
-          duration?: number;
-        };
-        const nextMode: PracticeMode = saved.mode === "minor" ? "minor" : "major";
-        const choices = cycleFor(nextMode);
-        setMode(nextMode);
-        setStartingKey(saved.startingKey && choices.includes(saved.startingKey) ? saved.startingKey : choices[0]);
-        if (saved.hands && ["Both hands", "Right hand", "Left hand"].includes(saved.hands)) setHands(saved.hands);
-        if (typeof saved.tempo === "number" && saved.tempo >= 40 && saved.tempo <= 160) setTempo(saved.tempo);
-        if (typeof saved.hanonNumber === "number" && saved.hanonNumber >= 1 && saved.hanonNumber <= 5) setHanonNumber(saved.hanonNumber);
-        if (typeof saved.duration === "number" && DURATIONS.includes(saved.duration)) {
+    const hydration = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(SETTINGS_KEY);
+        const saved = raw ? JSON.parse(raw) : {};
+        const m = saved?.mode === "minor" ? "minor" : "major";
+        setMode(m);
+        const next = { major: "C", minor: "Am" };
+        if (cycleFor(m).includes(saved?.startingKey))
+          next[m] = saved.startingKey;
+        const positionRaw = window.localStorage.getItem(POSITIONS_KEY);
+        const stored = positionRaw ? JSON.parse(positionRaw) : {};
+        for (const mode of ["major", "minor"] as const)
+          if (cycleFor(mode).includes(stored?.[mode]))
+            next[mode] = stored[mode];
+        setPositions(next);
+        if (
+          Number.isInteger(saved?.tempo) &&
+          saved.tempo >= 40 &&
+          saved.tempo <= 160
+        )
+          setTempo(saved.tempo);
+        if (HANDS.includes(saved?.hands)) setHands(saved.hands);
+        if (
+          Number.isInteger(saved?.hanonNumber) &&
+          saved.hanonNumber >= 1 &&
+          saved.hanonNumber <= 5
+        )
+          setHanonNumber(saved.hanonNumber);
+        if (DURATIONS.includes(saved?.duration)) {
           setDuration(saved.duration);
-          setSecondsLeft(saved.duration * 60);
+          setRemaining(saved.duration * 60);
         }
+      } catch {
+        setWarning(
+          "Saved settings could not be read. Defaults are available; existing data has been kept.",
+        );
       }
-    } catch {
-      // Keep the defaults if local settings are unavailable or malformed.
-    }
-    setSettingsLoaded(true);
+      try {
+        const result = readAttempts(window.localStorage);
+        setAttempts(result.attempts);
+        if (result.warning) setWarning(result.warning);
+        setCanSave(!result.warning);
+      } catch {
+        setWarning(
+          "Browser storage unavailable. Ratings remain in this session only.",
+        );
+        setCanSave(false);
+      }
+      setLoaded(true);
+    }, 0);
+    return () => {
+      window.clearTimeout(hydration);
+      stopPracticeAudio();
+    };
   }, []);
-
-  useEffect(() => {
-    if (!settingsLoaded) return;
-    window.localStorage.setItem(
-      SETTINGS_KEY,
-      JSON.stringify({ mode, startingKey, hands, tempo, hanonNumber, duration }),
-    );
-  }, [settingsLoaded, mode, startingKey, hands, tempo, hanonNumber, duration]);
-
+  // Settings are written only after a user edit, preserving malformed saved data on load.
+  function saveSettings(change: object, nextPositions = positions) {
+    try {
+      window.localStorage.setItem(
+        SETTINGS_KEY,
+        JSON.stringify({
+          mode,
+          startingKey: start,
+          tempo,
+          hands,
+          hanonNumber,
+          duration,
+          ...change,
+        }),
+      );
+      window.localStorage.setItem(POSITIONS_KEY, JSON.stringify(nextPositions));
+    } catch {
+      setWarning(
+        "Browser storage unavailable. Changes remain in this session only.",
+      );
+    }
+  }
   useEffect(() => {
     if (!running) return;
-    const timer = window.setInterval(() => {
-      setSecondsLeft((seconds) => Math.max(0, seconds - 1));
-    }, 1000);
+    const timer = window.setInterval(
+      () => setRemaining((s) => Math.max(0, s - 1)),
+      1000,
+    );
     return () => window.clearInterval(timer);
   }, [running]);
-
   useEffect(() => {
-    if (secondsLeft === 0) setRunning(false);
-  }, [secondsLeft]);
-
-  const cycle = useMemo(() => rotateCycle(mode, startingKey), [mode, startingKey]);
-  const currentKey = cycle[Math.min(keyIndex, cycle.length - 1)];
-  const tonic = tonicFor(mode, currentKey);
-  const scale = useMemo(
-    () => modeScale(tonic, mode === "major" ? "ionian" : "aeolian"),
-    [tonic, mode],
-  );
-  const triad = useMemo(
-    () => diatonicTriads(tonic, mode === "major" ? "ionian" : "aeolian")[0].notes,
-    [tonic, mode],
-  );
-  const scaleRun = [...scale, scale[0], ...scale.slice(0, -1).reverse()];
-  const arpeggioRun = [triad[0], triad[1], triad[2], triad[0], triad[2], triad[1], triad[0]];
-  const allocation = splitSessionMinutes(duration);
-  const isComplete = step === 3;
-  const activeStep = step < 0 ? 0 : Math.min(step, 2);
-
-  function changeMode(nextMode: PracticeMode) {
-    setMode(nextMode);
-    setStartingKey(cycleFor(nextMode)[0]);
-  }
-
-  function startSession() {
-    if (step < 0 || isComplete) {
-      setStep(0);
-      setKeyIndex(0);
-      setSecondsLeft(duration * 60);
+    if (remaining === 0) {
+      stopPracticeAudio();
+      const done = window.setTimeout(() => setRunning(false), 0);
+      return () => window.clearTimeout(done);
     }
-    setRunning(true);
+  }, [remaining]);
+  function stop() {
+    stopPracticeAudio();
+    setAudioError("");
   }
-
-  function resetSession() {
-    setRunning(false);
-    setStep(-1);
+  function move() {
+    stop();
+    setRevealed(false);
+    setNotes("");
+    setStatus("");
+    const [s, k] = nextActivity(step, keyIndex);
+    setStep(s);
+    setKeyIndex(k);
+    window.requestAnimationFrame(() =>
+      document.getElementById("activity-title")?.focus(),
+    );
+    if (s === 5) setRunning(false);
+  }
+  function begin() {
+    stop();
+    setStep(0);
     setKeyIndex(0);
-    setSecondsLeft(duration * 60);
+    setRemaining(duration * 60);
+    setRunning(true);
+    setRevealed(false);
+    setStatus("");
   }
-
-  function advancePractice() {
-    if (step === 0) {
-      setStep(1);
-      setKeyIndex(0);
-    } else if (step === 1 && keyIndex < cycle.length - 1) {
-      setKeyIndex((index) => index + 1);
-    } else if (step === 1) {
-      setStep(2);
-      setKeyIndex(0);
-    } else if (step === 2 && keyIndex < cycle.length - 1) {
-      setKeyIndex((index) => index + 1);
-    } else if (step === 2) {
-      setRunning(false);
-      setStep(3);
+  function rate(rating: Rating) {
+    const attempt: PracticeAttempt = {
+      key: currentKey,
+      mode,
+      activity: ACTIVITIES[step],
+      rating,
+      notes,
+      tempo,
+      progression: progression.id,
+      pattern: pattern.id,
+      date: new Date().toISOString(),
+    };
+    const next = [...attempts, attempt];
+    setAttempts(next);
+    let saved = false;
+    try {
+      if (canSave) saved = writeAttempts(window.localStorage, next);
+    } catch {}
+    if (!saved)
+      setWarning(
+        "Rating recorded for this session only. Browser storage is unavailable or existing data needs recovery.",
+      );
+    setStatus(
+      `${rating} recorded for ${currentKey} · ${ACTIVITIES[step]}.${saved ? " Saved in this browser." : ""}`,
+    );
+  }
+  async function hear() {
+    setAudioError("");
+    try {
+      await playPracticeEvents(events, tempo);
+    } catch {
+      setAudioError("Audio could not start. Try Hear example again.");
     }
   }
-
-  const nextLabel =
-    step === 0 ? "Begin scales" :
-    step === 1 && keyIndex < cycle.length - 1 ? "Next scale key" :
-    step === 1 ? "Begin arpeggios" :
-    step === 2 && keyIndex < cycle.length - 1 ? "Next arpeggio key" :
-    "Finish session";
-
+  function latest(key: string, m: PracticeMode, chords: boolean) {
+    return (
+      attempts
+        .filter(
+          (a) =>
+            a.key === key &&
+            a.mode === m &&
+            (chords
+              ? a.activity === "Chord-chart accompaniment"
+              : a.activity === "Scales" || a.activity === "Arpeggios"),
+        )
+        .at(-1)?.rating ?? "Not assessed"
+    );
+  }
   return (
-    <div className="min-h-screen bg-[#f7f4ec] text-[#10243a]">
+    <div className="practice min-h-screen bg-[#f7f4ec] text-[#10243a]">
       <MusicTutorNav active="/practice" />
-      <main className="mx-auto max-w-6xl px-5 py-8 sm:py-12">
-        <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
-          <div>
-            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">Your practice session</h1>
-            <p className="mt-3 max-w-2xl text-lg leading-7 text-[#42586b]">
-              A steady path through Hanon, scales, and arpeggios—following the cycle of fourths.
-            </p>
-          </div>
-          <div className="flex items-center gap-4 self-start rounded-2xl border border-[#cbd6dc] bg-white px-5 py-4 md:self-auto">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-wide text-[#42586b]">
-                {running ? "Session in progress" : isComplete ? "Session complete" : "Time remaining"}
-              </p>
-              <time className="mt-1 block font-mono text-4xl font-bold tabular-nums" aria-live="off">
-                {formatTime(secondsLeft)}
-              </time>
-            </div>
-            <span aria-hidden className="grid h-14 w-14 place-items-center rounded-full border-[6px] border-[#ef665a] text-lg font-bold">
-              {Math.round((secondsLeft / (duration * 60)) * 100)}%
-            </span>
-          </div>
-        </div>
-
-        <section aria-label="Session sequence" className="mt-10 border-y border-[#d7dee2] py-6">
-          <ol className="grid gap-5 md:grid-cols-3">
-            {STEPS.map((item, index) => (
-              <li key={item.title} className="flex gap-4">
-                <span
-                  aria-hidden
-                  className={
-                    "grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg font-bold " +
-                    (index === activeStep
-                      ? "bg-[#ef665a] text-white"
-                      : index < activeStep
-                        ? "bg-[#177d87] text-white"
-                        : "bg-[#dfe5e7] text-[#263e52]")
-                  }
-                >
-                  {index < activeStep ? "✓" : index + 1}
-                </span>
-                <div>
-                  <h2 className="text-xl font-bold">{item.title}</h2>
-                  <p className="mt-1 text-sm leading-6 text-[#42586b]">{item.detail}</p>
-                  <p className="mt-1 text-sm font-semibold text-[#177d87]">
-                    {index === 0 ? allocation.hanon + " minutes" : index === 1 ? allocation.scales + " minutes" : allocation.arpeggios + " minutes"}
-                  </p>
-                </div>
+      <main className="mx-auto max-w-6xl px-5 py-8">
+        <h1 className="text-4xl font-extrabold">Your practice session</h1>
+        <p className="mt-4">
+          Three keys in depth · {plan.keys.join(" → ")} · {mode}
+        </p>
+        <p>
+          Time allocations are guidance. Advancing or finishing the timer never
+          establishes mastery.
+        </p>
+        {warning && (
+          <p role="alert" className="notice">
+            {warning}
+          </p>
+        )}
+        <section aria-label="Session sequence" className="my-6">
+          <ol className="session-sequence grid gap-3">
+            {ACTIVITIES.map((activity, i) => (
+              <li
+                key={activity}
+                aria-current={step === i ? "step" : undefined}
+                className="rounded-xl border-2 p-3"
+              >
+                <strong>
+                  {i + 1}. {activity}
+                </strong>
+                <p>{plan.minutes[i].toFixed(1)} min guidance</p>
+                {step === i && <span>Current block</span>}
               </li>
             ))}
           </ol>
         </section>
-
-        <section className="grid gap-8 py-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="min-h-[320px] rounded-3xl bg-[#10243a] p-6 text-[#fffaf0] sm:p-8">
+        <div className="practice-workspace grid gap-6">
+          <section
+            className="min-w-0 rounded-2xl bg-[#10243a] p-6 text-white"
+            aria-label="Current activity"
+          >
+            <p>
+              Time remaining:{" "}
+              <time>
+                {Math.floor(remaining / 60)}:
+                {String(remaining % 60).padStart(2, "0")}
+              </time>
+              {remaining === 0
+                ? " · Guidance time ended. Continue or finish at your pace."
+                : ""}
+            </p>
             {step < 0 ? (
               <>
-                <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#a9c6cf]">Ready when you are</p>
-                <h2 className="mt-3 text-3xl font-bold">Start with relaxed hands.</h2>
-                <p className="mt-3 max-w-xl text-lg leading-7 text-[#e1e8e9]">
-                  Warm up with Hanon No. {hanonNumber}, then travel through twelve keys in both the scale and arpeggio blocks.
+                <h2>Ready when you are</h2>
+                <p>
+                  Warm up with Hanon No. {hanonNumber}, then use{" "}
+                  {plan.keys.join(", ")} for scales, arpeggios, accompaniment
+                  and listening.
                 </p>
-                <p className="mt-6 text-base text-[#e1e8e9]">
-                  {duration} minutes · {mode === "major" ? "Major" : "Minor"} · starting on {startingKey}
+                <p>
+                  Listen to the built-in examples, play at the keyboard, then
+                  assess your own comfort.
                 </p>
               </>
-            ) : isComplete ? (
+            ) : complete ? (
               <>
-                <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#a9c6cf]">All three blocks complete</p>
-                <h2 className="mt-3 text-3xl font-bold">Good work. Let it settle.</h2>
-                <p className="mt-3 max-w-xl text-lg leading-7 text-[#e1e8e9]">
-                  You covered the full cycle in {mode === "major" ? "major" : "minor"}: Hanon, scales, and tonic arpeggios.
+                <h2 id="activity-title" tabIndex={-1}>
+                  Session reviewed
+                </h2>
+                <p>
+                  You reached the end of the five blocks. Your self-assessments
+                  describe your confidence; completion is not a mastery score.
                 </p>
-                <Link href="/cycle" className="mt-6 inline-flex rounded-xl border border-[#8ab9c2] px-4 py-3 font-bold text-white hover:bg-[#1a3a50]">
-                  Review the cycle away from the keyboard
-                </Link>
-              </>
-            ) : step === 0 ? (
-              <>
-                <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#a9c6cf]">Block 1 · {allocation.hanon} minutes</p>
-                <h2 className="mt-3 text-3xl font-bold">Hanon No. {hanonNumber}</h2>
-                <p className="mt-3 max-w-xl text-lg leading-7 text-[#e1e8e9]">
-                  Play three even repetitions. Keep the wrist easy, listen for a steady tone, and let the hands wake up before you chase speed.
+                <p>
+                  Next three:{" "}
+                  {sessionPlan(
+                    mode,
+                    nextSessionKey(mode, start),
+                    duration,
+                  ).keys.join(" → ")}
                 </p>
-                <p className="mt-6 text-base text-[#e1e8e9]">{hands} · {tempo} BPM</p>
-              </>
-            ) : step === 1 ? (
-              <>
-                <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#a9c6cf]">
-                  Block 2 · Scale {keyIndex + 1} of {cycle.length}
-                </p>
-                <h2 className="mt-3 text-4xl font-extrabold">{currentKey} {mode}</h2>
-                <p className="mt-4 text-lg leading-8 text-[#fffaf0]">{scaleRun.map(pretty).join(" · ")}</p>
-                <p className="mt-5 text-base text-[#e1e8e9]">
-                  Play up and down one octave · {hands} · {tempo} BPM
-                </p>
+                <button onClick={begin}>Repeat these three keys</button>
                 <button
-                  type="button"
-                  onClick={() => void playScale(scale)}
-                  className="mt-5 min-h-12 rounded-xl border border-[#8ab9c2] px-4 py-3 text-base font-bold text-white hover:bg-[#1a3a50] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff786b]"
+                  onClick={() => {
+                    const next = {
+                      ...positions,
+                      [mode]: nextSessionKey(mode, start),
+                    };
+                    setPositions(next);
+                    saveSettings({ startingKey: next[mode] }, next);
+                    setStep(-1);
+                    setKeyIndex(0);
+                    stop();
+                  }}
                 >
-                  Hear this scale
+                  Prepare next three keys
                 </button>
               </>
             ) : (
               <>
-                <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#a9c6cf]">
-                  Block 3 · Arpeggio {keyIndex + 1} of {cycle.length}
-                </p>
-                <h2 className="mt-3 text-4xl font-extrabold">{currentKey} {mode}</h2>
-                <p className="mt-4 text-lg leading-8 text-[#fffaf0]">{arpeggioRun.map(pretty).join(" · ")}</p>
-                <p className="mt-5 text-base text-[#e1e8e9]">
-                  Root, third, fifth, octave, then back down · {hands} · {tempo} BPM
-                </p>
+                <h2 tabIndex={-1} id="activity-title">
+                  {ACTIVITIES[step]}
+                  {step > 0 ? ` · ${currentKey} (${keyIndex + 1} of 3)` : ""}
+                </h2>
+                {step === 0 ? (
+                  <>
+                    <p>
+                      Hanon No. {hanonNumber}: play three relaxed, even
+                      repetitions from your exercise reference. Stop if
+                      uncomfortable.
+                    </p>
+                    <p>
+                      {hands} · {tempo} BPM. This warmup uses your Hanon
+                      reference; no generated Hanon recording.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p>
+                      {tempo} BPM · {hands}
+                      {step >= 3
+                        ? " · Reference: left-hand bass and right-hand triads"
+                        : " · Reference: one right-hand octave, one note per beat"}
+                    </p>
+                    {mode === "minor" && (
+                      <p>
+                        Scales use natural minor. In charts marked “altered
+                        dominant”, major V raises the leading note by a
+                        semitone; v stays natural minor.
+                      </p>
+                    )}
+                    {step === 1 || step === 2 ? (
+                      <>
+                        <p className="text-2xl leading-loose">
+                          {techniqueLabels(currentKey, mode, step === 2)
+                            .map(pretty)
+                            .join(" · ")}
+                        </p>
+                        <p>
+                          Ascend to the octave and descend to the starting note.
+                          Each note lasts one beat.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <label>
+                          Built-in progression
+                          <select
+                            value={progression.id}
+                            onChange={(e) => {
+                              stop();
+                              setProgressionId(e.target.value);
+                              setRevealed(false);
+                            }}
+                          >
+                            {PROGRESSIONS.filter((p) => p.mode === mode).map(
+                              (p) => (
+                                <option key={p.id} value={p.id}>
+                                  {step === 4 && !revealed
+                                    ? `Listening example ${PROGRESSIONS.filter((item) => item.mode === mode).indexOf(p) + 1}`
+                                    : p.romans.join(" – ")}
+                                  {p.altered && (step !== 4 || revealed)
+                                    ? " · altered dominant"
+                                    : ""}
+                                </option>
+                              ),
+                            )}
+                          </select>
+                        </label>
+                        <label>
+                          Left-hand pattern
+                          <select
+                            value={patternId}
+                            onChange={(e) => {
+                              stop();
+                              setPatternId(e.target.value);
+                            }}
+                          >
+                            {PATTERNS.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          Chart labels
+                          <select
+                            value={display}
+                            onChange={(e) => setDisplay(e.target.value)}
+                          >
+                            <option value="both">
+                              Chord names and Roman numerals
+                            </option>
+                            <option value="names">Chord names</option>
+                            <option value="numbers">Roman numerals</option>
+                          </select>
+                        </label>
+                        {step === 4 && (
+                          <>
+                            <p>
+                              Hear the hidden chart. Identify the chord numbers
+                              by ear, then reveal and replay. Hum a starting
+                              note if helpful.
+                            </p>
+                            <button onClick={() => setRevealed((r) => !r)}>
+                              {revealed ? "Hide chart" : "Reveal chart"}
+                            </button>
+                          </>
+                        )}
+                        {step === 3 || revealed ? (
+                          <>
+                            <ol
+                              className="chart-grid my-5 grid gap-3"
+                              aria-label="Four-bar chord chart"
+                            >
+                              {chart.map((bar, i) => (
+                                <li className="rounded-xl border-2 p-4" key={i}>
+                                  <p>Bar {i + 1} · 4 beats</p>
+                                  <strong className="block text-3xl">
+                                    {display !== "numbers" && pretty(bar.name)}
+                                    {display === "both" ? " · " : ""}
+                                    {display !== "names" && bar.roman}
+                                  </strong>
+                                  <p>
+                                    Right hand:{" "}
+                                    {bar.chord.notes.map(pretty).join(" · ")}
+                                  </p>
+                                  <p>
+                                    Left hand:{" "}
+                                    {pattern.offsets
+                                      .map((offset, j) => {
+                                        const note =
+                                          offset === 7
+                                            ? bar.chord.notes[2]
+                                            : bar.chord.root;
+                                        const octave =
+                                          offset === 12
+                                            ? 3
+                                            : 2 +
+                                              (offset === 7 &&
+                                              [
+                                                "C",
+                                                "D",
+                                                "E",
+                                                "F",
+                                                "G",
+                                                "A",
+                                                "B",
+                                              ].indexOf(note[0]) <
+                                                [
+                                                  "C",
+                                                  "D",
+                                                  "E",
+                                                  "F",
+                                                  "G",
+                                                  "A",
+                                                  "B",
+                                                ].indexOf(bar.chord.root[0])
+                                                ? 1
+                                                : 0);
+                                        return `${pretty(note)}${octave} on beat ${pattern.beats[j] + 1} (${pattern.lengths[j]} beats)`;
+                                      })
+                                      .join("; ")}
+                                  </p>
+                                </li>
+                              ))}
+                            </ol>
+                            <p>
+                              One chord per bar. In ii–V–I and ii°–V–i, hold the
+                              final tonic across bars 3 and 4.
+                            </p>
+                          </>
+                        ) : (
+                          <p className="notice">
+                            Chart hidden for listening. No answer is shown until
+                            you reveal it.
+                          </p>
+                        )}
+                        {step === 3 && (
+                          <p>
+                            Optional: sing or hum over each pattern. Which
+                            supports your voice and the singer-songwriter sound
+                            you want?
+                          </p>
+                        )}
+                      </>
+                    )}
+                    <button onClick={() => void hear()}>Hear example</button>
+                    <button onClick={stop}>Stop audio</button>
+                    {audioError && <p role="alert">{audioError}</p>}
+                    {(step === 1 || step === 2) && (
+                      <TechniqueFingeringGuide
+                        musicalKey={currentKey}
+                        mode={mode}
+                        arpeggio={step === 2}
+                        hands={hands}
+                      />
+                    )}
+                  </>
+                )}
+                <fieldset className="mt-6">
+                  <legend>
+                    Guided self-assessment ·{" "}
+                    {step === 0 ? "Hanon warmup" : currentKey}
+                  </legend>
+                  <p>
+                    {step <= 2
+                      ? "Could you play evenly and comfortably at this tempo?"
+                      : step === 3
+                        ? "Could you follow the numbers and keep the left hand steady?"
+                        : "Could you hear the numbers before revealing the chart?"}
+                  </p>
+                  <label>
+                    Optional notes
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={3}
+                    />
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {RATINGS.map((r) => (
+                      <button key={r} onClick={() => rate(r)}>
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                  <p role="status">{status}</p>
+                </fieldset>
                 <button
-                  type="button"
-                  onClick={() => void playChord(triad, 4, "2n", 0.14)}
-                  className="mt-5 min-h-12 rounded-xl border border-[#8ab9c2] px-4 py-3 text-base font-bold text-white hover:bg-[#1a3a50] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff786b]"
+                  onClick={() => {
+                    stop();
+                    setStatus("Repeat at your own pace.");
+                  }}
                 >
-                  Hear the tonic triad arpeggiated
+                  Repeat this activity
+                </button>
+                <button onClick={move}>
+                  {step === 4 && keyIndex === 2
+                    ? "Finish session"
+                    : "Continue to next activity / key"}
                 </button>
               </>
             )}
-          </div>
-
-          <fieldset disabled={step >= 0 && !isComplete} className="rounded-3xl border border-[#cbd6dc] bg-white p-6 sm:p-8 disabled:opacity-70">
-            <legend className="px-2 text-xl font-bold">Session settings</legend>
-            <div className="mt-2 grid gap-5">
-              <label className="grid gap-2 text-sm font-bold">
-                Mode
-                <select
-                  value={mode}
-                  onChange={(event) => changeMode(event.target.value as PracticeMode)}
-                  className="min-h-12 rounded-xl border border-[#9daeb7] bg-white px-3 text-base font-medium text-[#10243a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177d87]"
-                >
-                  <option value="major">Major keys</option>
-                  <option value="minor">Minor keys</option>
-                </select>
-              </label>
-              <label className="grid gap-2 text-sm font-bold">
-                Starting key
-                <select
-                  value={startingKey}
-                  onChange={(event) => setStartingKey(event.target.value)}
-                  className="min-h-12 rounded-xl border border-[#9daeb7] bg-white px-3 text-base font-medium text-[#10243a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177d87]"
-                >
-                  {cycleFor(mode).map((key) => <option key={key} value={key}>{key}</option>)}
-                </select>
-              </label>
-              <label className="grid gap-2 text-sm font-bold">
-                Hands
-                <select value={hands} onChange={(event) => setHands(event.target.value)} className="min-h-12 rounded-xl border border-[#9daeb7] bg-white px-3 text-base font-medium text-[#10243a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177d87]">
-                  <option>Both hands</option>
-                  <option>Right hand</option>
-                  <option>Left hand</option>
-                </select>
-              </label>
-              <label className="grid gap-2 text-sm font-bold">
-                Session length
-                <select
-                  value={duration}
-                  onChange={(event) => {
-                    const nextDuration = Number(event.target.value);
-                    setDuration(nextDuration);
-                    setSecondsLeft(nextDuration * 60);
-                  }}
-                  className="min-h-12 rounded-xl border border-[#9daeb7] bg-white px-3 text-base font-medium text-[#10243a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177d87]"
-                >
-                  {DURATIONS.map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}
-                </select>
-              </label>
-              <label className="grid gap-2 text-sm font-bold">
-                Hanon exercise
-                <select value={hanonNumber} onChange={(event) => setHanonNumber(Number(event.target.value))} className="min-h-12 rounded-xl border border-[#9daeb7] bg-white px-3 text-base font-medium text-[#10243a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177d87]">
-                  {[1, 2, 3, 4, 5].map((number) => <option key={number} value={number}>No. {number}</option>)}
-                </select>
-              </label>
-              <label className="grid gap-2 text-sm font-bold">
-                Tempo <span className="font-mono text-[#177d87]">{tempo} BPM</span>
-                <input
-                  type="range"
-                  min="40"
-                  max="160"
-                  step="2"
-                  value={tempo}
-                  onChange={(event) => setTempo(Number(event.target.value))}
-                  className="min-h-10 accent-[#177d87]"
-                />
-                <span className="flex justify-between text-xs font-medium text-[#42586b]"><span>40 BPM</span><span>160 BPM</span></span>
-              </label>
-            </div>
+          </section>
+          <fieldset
+            disabled={!loaded || (step >= 0 && !complete)}
+            className="min-w-0 rounded-2xl border-2 bg-white p-5"
+          >
+            <legend>Session settings</legend>
+            <label>
+              Mode
+              <select
+                value={mode}
+                onChange={(e) => {
+                  const m = e.target.value as PracticeMode;
+                  setMode(m);
+                  setKeyIndex(0);
+                  saveSettings({ mode: m, startingKey: positions[m] });
+                  stop();
+                }}
+              >
+                <option value="major">Major keys</option>
+                <option value="minor">Minor keys</option>
+              </select>
+            </label>
+            <label>
+              Starting key
+              <select
+                value={start}
+                onChange={(e) => {
+                  const next = { ...positions, [mode]: e.target.value };
+                  setPositions(next);
+                  setKeyIndex(0);
+                  saveSettings({ startingKey: e.target.value }, next);
+                  stop();
+                }}
+              >
+                {cycleFor(mode).map((k) => (
+                  <option key={k}>{k}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Hands
+              <select
+                value={hands}
+                onChange={(e) => {
+                  setHands(e.target.value);
+                  saveSettings({ hands: e.target.value });
+                }}
+              >
+                {HANDS.map((h) => (
+                  <option key={h}>{h}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Session length
+              <select
+                value={duration}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setDuration(value);
+                  setRemaining(value * 60);
+                  saveSettings({ duration: value });
+                }}
+              >
+                {DURATIONS.map((d) => (
+                  <option key={d} value={d}>
+                    {d} minutes
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Hanon exercise
+              <select
+                value={hanonNumber}
+                onChange={(e) => {
+                  setHanonNumber(Number(e.target.value));
+                  saveSettings({ hanonNumber: Number(e.target.value) });
+                }}
+              >
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <option value={n} key={n}>
+                    No. {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Tempo (BPM)
+              <input
+                type="number"
+                min={40}
+                max={160}
+                value={tempo}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (Number.isInteger(value) && value >= 40 && value <= 160) {
+                    setTempo(value);
+                    saveSettings({ tempo: value });
+                  }
+                }}
+              />
+            </label>
+            <p>
+              Default: three consecutive keys. Major and minor keep separate
+              starting positions.
+            </p>
           </fieldset>
-        </section>
-
-        <div className="flex flex-wrap gap-3">
-          {!isComplete && (
-            <button
-              type="button"
-              onClick={running ? () => setRunning(false) : startSession}
-              className="min-h-14 rounded-xl bg-[#ef665a] px-7 py-4 text-lg font-extrabold text-white shadow-sm hover:bg-[#d95349] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#10243a]"
-            >
-              {running ? "Pause session" : step >= 0 ? "Resume session" : "Start practice session"}
-            </button>
-          )}
-          {step >= 0 && !isComplete && (
-            <button
-              type="button"
-              onClick={advancePractice}
-              className="min-h-14 rounded-xl bg-[#177d87] px-7 py-4 text-lg font-extrabold text-white hover:bg-[#12636c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#10243a]"
-            >
-              {nextLabel}
-            </button>
-          )}
-          {(step >= 0 || isComplete) && (
-            <button
-              type="button"
-              onClick={resetSession}
-              className="min-h-14 rounded-xl border border-[#81939f] bg-white px-6 py-4 text-base font-bold text-[#10243a] hover:bg-[#e8eef0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#177d87]"
-            >
-              Reset
-            </button>
-          )}
         </div>
+        <div className="my-6 flex flex-wrap gap-3">
+          {step < 0 ? (
+            <button disabled={!loaded} onClick={begin}>
+              Start practice session
+            </button>
+          ) : (
+            !complete && (
+              <button
+                onClick={() => {
+                  stop();
+                  setRunning(!running);
+                }}
+              >
+                {running ? "Pause timer" : "Resume timer"}
+              </button>
+            )
+          )}
+          {step >= 0 && (
+            <button
+              onClick={() => {
+                stop();
+                setRunning(false);
+                setStep(-1);
+                setKeyIndex(0);
+                setRemaining(duration * 60);
+              }}
+            >
+              Return to settings
+            </button>
+          )}
+          <Link href="/cycle">Full repeating cycle tape</Link>
+        </div>
+        <section aria-label="Self-assessed progress">
+          <h2>Self-assessed progress</h2>
+          <p>
+            Technique and chord-chart confidence are separate. Latest rating
+            shown; unassessed keys stay unassessed. Ratings and notes stay in
+            this browser.
+          </p>
+          {(["major", "minor"] as const).map((m) => (
+            <section key={m}>
+              <h3 className="my-4 text-2xl font-bold">All 12 {m} keys</h3>
+              <ul className="progress-grid grid gap-3">
+                {cycleFor(m).map((key) => (
+                  <li className="rounded-xl border-2 bg-white p-4" key={key}>
+                    <strong className="text-2xl">{key}</strong>
+                    <p>Technique: {latest(key, m, false)}</p>
+                    <p>Chord-chart confidence: {latest(key, m, true)}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+          <details className="my-5">
+            <summary>Assessment history ({attempts.length})</summary>
+            <ul>
+              {attempts
+                .slice()
+                .reverse()
+                .map((a, i) => (
+                  <li className="my-4" key={i}>
+                    {a.key} {a.mode} · {a.activity} · {a.rating} · {a.tempo} BPM
+                    ·{" "}
+                    {PROGRESSIONS.find(
+                      (p) => p.id === a.progression,
+                    )?.romans.join(" – ")}{" "}
+                    · {PATTERNS.find((p) => p.id === a.pattern)?.label} ·{" "}
+                    {new Date(a.date).toLocaleString()}
+                    <p>{a.notes}</p>
+                  </li>
+                ))}
+            </ul>
+          </details>
+        </section>
       </main>
     </div>
   );

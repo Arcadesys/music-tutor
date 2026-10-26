@@ -24,3 +24,121 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Practice is readable without colour cues or fine notation. */
+.practice {
+  font-size: 1.125rem;
+  line-height: 1.65;
+}
+.practice h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 1rem 0;
+}
+.practice p {
+  margin: 0.65rem 0;
+  overflow-wrap: anywhere;
+}
+.practice label {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  font-weight: 700;
+}
+.practice select,
+.practice input,
+.practice textarea {
+  min-height: 48px;
+  width: 100%;
+  min-width: 0;
+  border: 2px solid #526578;
+  border-radius: 0.5rem;
+  padding: 0.65rem;
+  background: white;
+  color: #10243a;
+  font: inherit;
+}
+.practice button,
+.practice main a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  border: 2px solid #526578;
+  border-radius: 0.5rem;
+  padding: 0.65rem 1rem;
+  margin: 0.35rem 0.35rem 0.35rem 0;
+  background: #fff;
+  color: #10243a;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  max-width: 100%;
+}
+.practice :focus-visible {
+  outline: 4px solid #bd4815;
+  outline-offset: 4px;
+}
+.practice section.bg-\[\#10243a\] :focus-visible {
+  outline-color: #ffd076;
+}
+.practice button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.practice legend {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+.practice .notice {
+  padding: 1rem;
+  background: #fff4cb;
+  color: #10243a;
+  border: 2px solid #72531c;
+  border-radius: 0.5rem;
+}
+.practice [aria-current="step"] {
+  border-width: 4px;
+  border-color: #10243a;
+}
+@media (max-width: 540px) {
+  .practice header > div {
+    flex-wrap: wrap;
+  }
+  .practice nav {
+    flex-wrap: wrap;
+  }
+}
+.practice header a,
+.practice summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  font-size: 1.125rem;
+}
+.practice main {
+  container-type: inline-size;
+}
+.practice .session-sequence {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+.practice .practice-workspace {
+  grid-template-columns: 1fr;
+}
+.practice .chart-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+.practice .progress-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+@container (min-width: 900px) {
+  .practice .practice-workspace {
+    grid-template-columns: 1.5fr 1fr;
+  }
+}
+.practice .finger-note-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr));
+}
+.practice .fingering-guide {
+  border-top: 2px solid #b7cbd9;
+  padding-top: 1.5rem;
+}

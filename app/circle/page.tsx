@@ -29,7 +29,8 @@ export default function CirclePage() {
   const reveal = difficulty !== "hard";
 
   useEffect(() => {
-    setQuestion(randomCircleQuestion());
+    const initialQuestion = window.setTimeout(() => setQuestion(randomCircleQuestion()), 0);
+    return () => window.clearTimeout(initialQuestion);
   }, []);
 
   function next() {
