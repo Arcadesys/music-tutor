@@ -1,3 +1,4 @@
+import { ThemeControl } from "./ThemeControl";
 import Link from "next/link";
 
 type Route = "/" | "/practice" | "/cycle";
@@ -11,11 +12,17 @@ const LINKS: { href: Route; label: string }[] = [
 export function MusicTutorNav({ active }: { active: Route }) {
   return (
     <header className="border-b border-[#d7dee2] bg-[#10243a] text-[#fffaf0]">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
-        <Link href="/" className="text-xl font-extrabold tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ff786b]">
+      <div className="mx-auto flex max-w-6xl items-center flex-wrap justify-between gap-4 px-5 py-4">
+        <Link
+          href="/"
+          className="text-xl font-extrabold tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ff786b]"
+        >
           Music Tutor
         </Link>
-        <nav aria-label="Main navigation" className="flex items-center gap-1 sm:gap-3">
+        <nav
+          aria-label="Main navigation"
+          className="flex items-center gap-1 sm:gap-3"
+        >
           {LINKS.map((link) => (
             <Link
               key={link.href}
@@ -32,6 +39,7 @@ export function MusicTutorNav({ active }: { active: Route }) {
             </Link>
           ))}
         </nav>
+        <ThemeControl />
       </div>
     </header>
   );

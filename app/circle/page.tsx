@@ -87,7 +87,7 @@ export default function CirclePage() {
     >
       <DifficultySelect value={difficulty} onChange={setDifficulty} hint={HINTS[difficulty]} />
       <CircleOfFifths marks={marks} onSelect={select} />
-      <p className="max-w-md text-center text-sm text-slate-400">
+      <p className="max-w-md text-center text-sm text-[var(--muted)]">
         Outer ring = major keys, inner ring = relative minors. Click the wedge that answers
         the prompt.
       </p>

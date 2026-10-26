@@ -230,7 +230,7 @@ export default function PracticePage() {
     );
   }
   return (
-    <div className="practice min-h-screen bg-[#f7f4ec] text-[#10243a]">
+    <div className="practice min-h-screen bg-[var(--page)] text-[var(--ink)]">
       <MusicTutorNav active="/practice" />
       <main className="mx-auto max-w-6xl px-5 py-8">
         <h1 className="text-4xl font-extrabold">Your practice session</h1>
@@ -265,7 +265,7 @@ export default function PracticePage() {
         </section>
         <div className="practice-workspace grid gap-6">
           <section
-            className="min-w-0 rounded-2xl bg-[#10243a] p-6 text-white"
+            className="min-w-0 rounded-2xl bg-[var(--panel)] p-6 text-white"
             aria-label="Current activity"
           >
             <p>
@@ -575,7 +575,7 @@ export default function PracticePage() {
           </section>
           <fieldset
             disabled={!loaded || (step >= 0 && !complete)}
-            className="min-w-0 rounded-2xl border-2 bg-white p-5"
+            className="min-w-0 rounded-2xl border-2 bg-[var(--surface)] p-5"
           >
             <legend>Session settings</legend>
             <label>
@@ -725,7 +725,7 @@ export default function PracticePage() {
               <h3 className="my-4 text-2xl font-bold">All 12 {m} keys</h3>
               <ul className="progress-grid grid gap-3">
                 {cycleFor(m).map((key) => (
-                  <li className="rounded-xl border-2 bg-white p-4" key={key}>
+                  <li className="rounded-xl border-2 bg-[var(--surface)] p-4" key={key}>
                     <strong className="text-2xl">{key}</strong>
                     <p>Technique: {latest(key, m, false)}</p>
                     <p>Chord-chart confidence: {latest(key, m, true)}</p>

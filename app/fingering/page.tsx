@@ -87,7 +87,7 @@ export default function FingeringPage() {
       prompt={
         <span>
           {pretty(currentKey)} major — {handLabel}
-          <span className="mt-1 block text-base font-normal text-slate-300">
+          <span className="mt-1 block text-base font-normal text-[var(--muted)]">
             {scale.map(pretty).join("  ")}
           </span>
         </span>
@@ -113,13 +113,13 @@ export default function FingeringPage() {
       <Piano startMidi={60} whiteCount={15} marks={marks} width={620} />
 
       {study || complete ? (
-        <p className="text-center text-lg text-slate-200">
+        <p className="text-center text-lg text-[var(--ink)]">
           {complete ? "🎉 Whole scale fingered! " : ""}
           Fingers: {fingers.join(" · ")}
         </p>
       ) : (
         <div className="flex flex-col items-center gap-3">
-          <p className="text-lg text-slate-200">
+          <p className="text-lg text-[var(--ink)]">
             Which finger plays the {DEGREE[step]} note,{" "}
             <strong className="text-amber-300">{pretty(scale[step % 7])}</strong>?
           </p>
@@ -134,7 +134,7 @@ export default function FingeringPage() {
       )}
 
       <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-        <span className="text-slate-400">Hand:</span>
+        <span className="text-[var(--muted)]">Hand:</span>
         {(["rh", "lh"] as Hand[]).map((h) => (
           <Button
             key={h}
@@ -149,7 +149,7 @@ export default function FingeringPage() {
             {h === "rh" ? "Right" : "Left"}
           </Button>
         ))}
-        <span className="ml-3 text-slate-400">Move:</span>
+        <span className="ml-3 text-[var(--muted)]">Move:</span>
         {(["clockwise", "counterclockwise", "random"] as Direction[]).map((d) => (
           <Button
             key={d}

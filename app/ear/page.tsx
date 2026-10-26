@@ -252,7 +252,7 @@ export default function EarPage() {
               ? "Listen, then play the notes in order"
               : "Listen, then click the matching key"}
           {isMelody && !solved && sequence.length > 0 && (
-            <span className="block text-base font-normal text-slate-400">
+            <span className="block text-base font-normal text-[var(--muted)]">
               Note {pos + 1} of {sequence.length}
             </span>
           )}
@@ -309,7 +309,7 @@ export default function EarPage() {
       )}
 
       <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-        <span className="text-slate-400">Mode:</span>
+        <span className="text-[var(--muted)]">Mode:</span>
         {(["single", "melody", "interval"] as Length[]).map((l) => (
           <Button
             key={l}
@@ -325,7 +325,7 @@ export default function EarPage() {
       {isInterval ? (
         <>
           <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-            <span className="text-slate-400">Intervals:</span>
+            <span className="text-[var(--muted)]">Intervals:</span>
             {INTERVAL_NAMES.map((iv) => (
               <Button
                 key={iv.semitones}
@@ -340,7 +340,7 @@ export default function EarPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-            <span className="text-slate-400">Direction:</span>
+            <span className="text-[var(--muted)]">Direction:</span>
             {(["asc", "desc", "both"] as IntervalDir[]).map((d) => (
               <Button
                 key={d}
@@ -356,7 +356,7 @@ export default function EarPage() {
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-            <span className="text-slate-400">Instrument:</span>
+            <span className="text-[var(--muted)]">Instrument:</span>
             {(["piano", "guitar", "bass"] as Instrument[]).map((inst) => (
               <Button
                 key={inst}
@@ -372,7 +372,7 @@ export default function EarPage() {
           <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
             {instrument === "piano" && (
               <>
-                <span className="text-slate-400">Range:</span>
+                <span className="text-[var(--muted)]">Range:</span>
                 {[1, 2].map((o) => (
                   <Button
                     key={o}
@@ -405,7 +405,7 @@ export default function EarPage() {
         >
           {mask ? "🎭 Masking on" : "Masking off"}
         </Button>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-[var(--muted)]">
           Scrambles pitch memory between guesses — trains absolute pitch, not relative cues.
         </p>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeControl } from "./ThemeControl";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Progress } from "@/lib/storage";
@@ -30,15 +31,16 @@ export function QuizShell({
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
-        <Link href="/" className="text-sm text-sky-400 hover:underline">
+        <Link href="/" className="text-sm text-[var(--accent)] hover:underline">
           ← All drills
         </Link>
-        <h1 className="text-xl font-bold text-slate-100">{title}</h1>
+        <h1 className="text-xl font-bold text-[var(--ink)]">{title}</h1>
         <ScoreBoard progress={progress} />
+        <ThemeControl />
       </header>
 
       <div
-        className="rounded-2xl bg-slate-800 p-5 text-center text-2xl font-semibold text-slate-50"
+        className="rounded-2xl bg-[var(--surface)] p-5 text-center text-2xl font-semibold text-[var(--ink)]"
         aria-live="polite"
       >
         {prompt}
@@ -54,12 +56,20 @@ export function QuizShell({
           feedback === null ? "bg-transparent text-transparent" : "",
         ].join(" ")}
       >
-        {feedback === "correct" ? "✓ Correct" : feedback === "wrong" ? feedbackMessage ?? "✗ Try again" : "·"}
+        {feedback === "correct"
+          ? "✓ Correct"
+          : feedback === "wrong"
+            ? (feedbackMessage ?? "✗ Try again")
+            : "·"}
       </div>
 
       <div className="flex flex-col items-center gap-4">{children}</div>
 
-      {controls && <div className="flex flex-wrap items-center justify-center gap-3">{controls}</div>}
+      {controls && (
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {controls}
+        </div>
+      )}
     </main>
   );
 }
