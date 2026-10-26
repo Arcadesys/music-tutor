@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { MusicTutorNav } from "@/components/MusicTutorNav";
+import { playChord, playScale } from "@/lib/audio";
 import { diatonicTriads, modeScale, pretty } from "@/lib/theory";
 import { cycleFor, rotateCycle, splitSessionMinutes, tonicFor, type PracticeMode } from "@/lib/practice";
 
 const SETTINGS_KEY = "music-tutor-practice-settings-v1";
-const DURATIONS = [10, 15, 20, 25, 30];
+const DURATIONS = [10, 12, 15, 20, 25, 30];
 
 function formatTime(seconds: number): string {
   const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -244,6 +245,13 @@ export default function PracticePage() {
                 <p className="mt-5 text-base text-[#e1e8e9]">
                   Play up and down one octave · {hands} · {tempo} BPM
                 </p>
+                <button
+                  type="button"
+                  onClick={() => void playScale(scale)}
+                  className="mt-5 min-h-12 rounded-xl border border-[#8ab9c2] px-4 py-3 text-base font-bold text-white hover:bg-[#1a3a50] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff786b]"
+                >
+                  Hear this scale
+                </button>
               </>
             ) : (
               <>
@@ -255,6 +263,13 @@ export default function PracticePage() {
                 <p className="mt-5 text-base text-[#e1e8e9]">
                   Root, third, fifth, octave, then back down · {hands} · {tempo} BPM
                 </p>
+                <button
+                  type="button"
+                  onClick={() => void playChord(triad, 4, "2n", 0.14)}
+                  className="mt-5 min-h-12 rounded-xl border border-[#8ab9c2] px-4 py-3 text-base font-bold text-white hover:bg-[#1a3a50] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff786b]"
+                >
+                  Hear the tonic triad arpeggiated
+                </button>
               </>
             )}
           </div>
