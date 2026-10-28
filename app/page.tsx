@@ -3,6 +3,7 @@ import Image from "next/image";
 import { MusicTutorNav } from "@/components/MusicTutorNav";
 
 const DRILLS = [
+  { href: "/progressions", title: "Progression recall", detail: "Name the chords in a progression for any major or minor key." },
   { href: "/fingering", title: "Scale fingering", detail: "Practice right- and left-hand patterns in every major key." },
   { href: "/circle", title: "Circle of fifths", detail: "Recall key signatures, relative minors, and fifths." },
   { href: "/diatonic", title: "Diatonic chords", detail: "Find the chords that belong to a key, including ♭VII." },
