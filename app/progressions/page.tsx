@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MusicTutorNav } from "@/components/MusicTutorNav";
 import { MoxieIllustration } from "@/components/MoxieIllustration";
+import { ProgressionCircle } from "@/components/ProgressionCircle";
 import { chartFor, cycleFor, rotateCycle, PROGRESSIONS, type PracticeMode } from "@/lib/practice";
 
 const control = "min-h-12 rounded-xl border-2 border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-lg text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]";
@@ -68,7 +69,7 @@ export default function ProgressionsPage() {
             <button type="button" className={control + " font-bold"} onClick={nextQuestion}>New question</button>
           </div>
           <div id="answer" aria-live="polite">
-            {revealed && <div className="mt-6 border-t border-[var(--border)] pt-5"><h3 className="text-xl font-bold">Chord chart</h3><ol className="mt-3 space-y-2 text-lg">{chart.map((bar, index) => <li key={index}><strong>{bar.roman}: {bar.name}</strong> — {bar.chord.notes.join(" – ")}</li>)}</ol></div>}
+            {revealed && <div className="mt-6 border-t border-[var(--border)] pt-5"><h3 className="text-xl font-bold">Chord chart</h3><ol className="mt-3 space-y-2 text-lg">{chart.map((bar, index) => <li key={index}><strong>{bar.roman}: {bar.name}</strong> — {bar.chord.notes.join(" – ")}</li>)}</ol><ProgressionCircle chart={chart} /></div>}
           </div>
         </section>
         <div className="mt-8"><MoxieIllustration listening /></div>
