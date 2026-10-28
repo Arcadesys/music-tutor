@@ -169,7 +169,7 @@ export default function DiatonicPage() {
       return (
         <span>
           Identify the chord you hear
-          <span className="block text-base font-normal text-slate-400">
+          <span className="block text-base font-normal text-[var(--muted)]">
             {pretty(musicKey)} {modeLabel(mode)} — click its spot on the circle
           </span>
         </span>
@@ -177,8 +177,8 @@ export default function DiatonicPage() {
     const verb = difficulty === "easy" ? "Play" : "Find";
     return (
       <span>
-        {verb} the <span className="text-sky-300">{currentChord.roman}</span> chord
-        <span className="block text-base font-normal text-slate-400">
+        {verb} the <span className="text-[var(--accent)]">{currentChord.roman}</span> chord
+        <span className="block text-base font-normal text-[var(--muted)]">
           {pretty(musicKey)} {modeLabel(mode)}
           {difficulty === "easy" ? ` — ${step + 1} / ${chords.length}` : ""}
         </span>
@@ -212,7 +212,7 @@ export default function DiatonicPage() {
       <CircleOfFifths marks={marks} onSelect={select} />
 
       <div className="flex flex-wrap items-center justify-center gap-1.5 text-sm">
-        <span className="mr-1 text-slate-400">Mode:</span>
+        <span className="mr-1 text-[var(--muted)]">Mode:</span>
         {MODES.map((m) => (
           <Button
             key={m}
@@ -226,7 +226,7 @@ export default function DiatonicPage() {
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-1.5 text-sm">
-        <span className="mr-1 text-slate-400">Key:</span>
+        <span className="mr-1 text-[var(--muted)]">Key:</span>
         {keysAroundCircle("clockwise").map((k) => (
           <Button
             key={k}

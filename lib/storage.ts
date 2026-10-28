@@ -73,7 +73,11 @@ export function loadMisses(mode: string): Misses {
 }
 
 /** Record one attempt at a specific item: misses climb on wrong, ease on right. */
-export function recordItem(mode: string, itemId: string, correct: boolean): Misses {
+export function recordItem(
+  mode: string,
+  itemId: string,
+  correct: boolean,
+): Misses {
   const misses = loadMisses(mode);
   const prev = misses[itemId] ?? 0;
   const next = correct ? Math.max(0, prev - 1) : prev + 1;
@@ -94,7 +98,11 @@ export function recordItem(mode: string, itemId: string, correct: boolean): Miss
  * gets a base weight of 1 plus its miss count, so unseen items still appear.
  * Deterministic only in the `rand` you pass (defaults to Math.random).
  */
-export function pickWeighted(ids: string[], misses: Misses, rand = Math.random): string {
+export function pickWeighted(
+  ids: string[],
+  misses: Misses,
+  rand = Math.random,
+): string {
   const weights = ids.map((id) => 1 + (misses[id] ?? 0));
   const total = weights.reduce((a, b) => a + b, 0);
   let r = rand() * total;
@@ -103,4 +111,67 @@ export function pickWeighted(ids: string[], misses: Misses, rand = Math.random):
     if (r < 0) return ids[i];
   }
   return ids[ids.length - 1];
+}
+
+// Separate namespace preserves all existing quiz results and practice settings.
+import {
+  ACTIVITIES,
+  RATINGS,
+  cycleFor,
+  PATTERNS,
+  PROGRESSIONS,
+  type PracticeAttempt,
+} from "./practice";
+export const ATTEMPTS_KEY = "music-tutor-practice-attempts-v1";
+export function validAttempt(value: unknown): value is PracticeAttempt {
+  if (!value || typeof value !== "object") return false;
+  const a = value as PracticeAttempt;
+  return (
+    (a.mode === "major" || a.mode === "minor") &&
+    cycleFor(a.mode).includes(a.key) &&
+    ACTIVITIES.includes(a.activity) &&
+    RATINGS.includes(a.rating) &&
+    typeof a.notes === "string" &&
+    typeof a.tempo === "number" &&
+    a.tempo >= 40 &&
+    a.tempo <= 160 &&
+    PROGRESSIONS.some((p) => p.id === a.progression) &&
+    PATTERNS.some((p) => p.id === a.pattern) &&
+    typeof a.date === "string" &&
+    Number.isFinite(Date.parse(a.date))
+  );
+}
+export function readAttempts(storage: Pick<Storage, "getItem">): {
+  attempts: PracticeAttempt[];
+  warning: string;
+} {
+  try {
+    const raw = storage.getItem(ATTEMPTS_KEY);
+    if (!raw) return { attempts: [], warning: "" };
+    const data: unknown = JSON.parse(raw);
+    if (!Array.isArray(data) || !data.every(validAttempt))
+      return {
+        attempts: [],
+        warning:
+          "Saved self-assessments could not be read. Existing data has been kept.",
+      };
+    return { attempts: data, warning: "" };
+  } catch {
+    return {
+      attempts: [],
+      warning:
+        "Browser storage unavailable or unreadable. Ratings remain in this session only.",
+    };
+  }
+}
+export function writeAttempts(
+  storage: Pick<Storage, "setItem">,
+  attempts: PracticeAttempt[],
+): boolean {
+  try {
+    storage.setItem(ATTEMPTS_KEY, JSON.stringify(attempts));
+    return true;
+  } catch {
+    return false;
+  }
 }

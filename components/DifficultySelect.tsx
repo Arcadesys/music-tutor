@@ -18,7 +18,7 @@ export function DifficultySelect({ value, onChange, hint }: Props) {
   return (
     <div className="flex flex-col items-center gap-1">
       <div className="flex items-center gap-2 text-sm">
-        <span className="text-slate-400">Difficulty:</span>
+        <span className="text-[var(--muted)]">Difficulty:</span>
         {DIFFICULTIES.map((d) => (
           <Button
             key={d}
@@ -31,7 +31,7 @@ export function DifficultySelect({ value, onChange, hint }: Props) {
           </Button>
         ))}
       </div>
-      {hint && <p className="text-xs text-slate-400">{hint}</p>}
+      {hint && <p className="text-xs text-[var(--muted)]">{hint}</p>}
     </div>
   );
 }

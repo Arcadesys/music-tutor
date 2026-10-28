@@ -1,8 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --page: #f7f4ec;
+  --surface: #ffffff;
+  --subtle: #e7edef;
+  --selected: #dceff0;
+  --hover: #dce5e8;
+  --ink: #10243a;
+  --muted: #42586b;
+  --border: #64788b;
+  --accent: #125c65;
+  --action: #12636c;
+  --action-hover: #0b4c54;
+  --focus: #a3390c;
+  --panel: #10243a;
+  --panel-border: #b7cbd9;
+  --control: #ffffff;
+  --control-ink: #10243a;
+  --notice: #fff4cb;
+  --notice-ink: #10243a;
+  --background: var(--page);
+  --foreground: var(--ink);
 }
 
 @theme inline {
@@ -13,14 +32,208 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0c1520;
+    --surface: #172637;
+    --subtle: #203448;
+    --selected: #294c59;
+    --hover: #2b435a;
+    --ink: #f4f7fb;
+    --muted: #c2d1df;
+    --border: #8299ae;
+    --accent: #8ce0e5;
+    --action: #12636c;
+    --action-hover: #0b4c54;
+    --focus: #ffd076;
+    --panel: #142b40;
+    --panel-border: #b7cbd9;
+    --control: #203448;
+    --control-ink: #f4f7fb;
+    --notice: #3d321a;
+    --notice-ink: #fff1c2;
   }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0c1520;
+  --surface: #172637;
+  --subtle: #203448;
+  --selected: #294c59;
+  --hover: #2b435a;
+  --ink: #f4f7fb;
+  --muted: #c2d1df;
+  --border: #8299ae;
+  --accent: #8ce0e5;
+  --action: #12636c;
+  --action-hover: #0b4c54;
+  --focus: #ffd076;
+  --panel: #142b40;
+  --panel-border: #b7cbd9;
+  --control: #203448;
+  --control-ink: #f4f7fb;
+  --notice: #3d321a;
+  --notice-ink: #fff1c2;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Practice is readable without colour cues or fine notation. */
+.practice {
+  font-size: 1.125rem;
+  line-height: 1.65;
+}
+.practice h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 1rem 0;
+}
+.practice p {
+  margin: 0.65rem 0;
+  overflow-wrap: anywhere;
+}
+.practice label {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  font-weight: 700;
+}
+.practice select,
+.practice input,
+.practice textarea {
+  min-height: 48px;
+  width: 100%;
+  min-width: 0;
+  border: 2px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.65rem;
+  background: var(--control);
+  color: var(--control-ink);
+  font: inherit;
+}
+.practice button,
+.practice main a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  border: 2px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.65rem 1rem;
+  margin: 0.35rem 0.35rem 0.35rem 0;
+  background: var(--control);
+  color: var(--control-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  max-width: 100%;
+}
+.practice :focus-visible {
+  outline: 4px solid var(--focus);
+  outline-offset: 4px;
+}
+.practice section[aria-label="Current activity"] :focus-visible {
+  outline-color: #ffd076;
+}
+.practice button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.practice legend {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+.practice .notice {
+  padding: 1rem;
+  background: var(--notice);
+  color: var(--notice-ink);
+  border: 2px solid var(--border);
+  border-radius: 0.5rem;
+}
+.practice [aria-current="step"] {
+  border-width: 4px;
+  border-color: var(--control-ink);
+}
+@media (max-width: 540px) {
+  .practice header > div {
+    flex-wrap: wrap;
+  }
+  .practice nav {
+    flex-wrap: wrap;
+  }
+}
+.practice header a,
+.practice summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  font-size: 1.125rem;
+}
+.practice main {
+  container-type: inline-size;
+}
+.practice .session-sequence {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+.practice .practice-workspace {
+  grid-template-columns: 1fr;
+}
+.practice .chart-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+.practice .progress-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+@container (min-width: 900px) {
+  .practice .practice-workspace {
+    grid-template-columns: 1.5fr 1fr;
+  }
+}
+.practice .finger-note-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr));
+}
+.practice .fingering-guide {
+  border-top: 2px solid var(--panel-border);
+  padding-top: 1.5rem;
+}
+
+.theme-control {
+  font-size: 1.125rem;
+  line-height: 1.5;
+  max-width: 100%;
+}
+.theme-control label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  font-weight: 700;
+}
+.theme-control select {
+  width: auto;
+  min-width: 8rem;
+  min-height: 48px;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--control);
+  color: var(--control-ink);
+  font: inherit;
+}
+.theme-control p {
+  max-width: 22rem;
+  margin-top: 0.5rem;
+}
+:focus-visible {
+  outline: 4px solid var(--focus);
+  outline-offset: 4px;
+}
+header a {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
 }

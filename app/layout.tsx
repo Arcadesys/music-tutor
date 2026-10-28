@@ -1,3 +1,4 @@
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -14,7 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Music Tutor",
-  description: "Drill scale fingerings, the circle of fifths, and diatonic chords by ear.",
+  description:
+    "Build piano fluency with structured Hanon, scale, arpeggio, and cycle-of-fourths practice.",
 };
 
 export default function RootLayout({
@@ -25,9 +27,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={
+        geistSans.variable + " " + geistMono.variable + " h-full antialiased"
+      }
     >
-      <body className="min-h-full flex flex-col bg-slate-900 text-slate-100">{children}</body>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body className="min-h-full flex flex-col bg-[var(--page)] text-[var(--ink)]">
+        {children}
+      </body>
     </html>
   );
 }

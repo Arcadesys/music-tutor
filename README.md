@@ -1,44 +1,28 @@
 # Music Tutor
 
-A music-theory drilling app — built to learn by **ear and interaction** rather than by
-squinting at tiny notation. Three quiz modes:
+Music Tutor is a piano-practice app for building fluency through repetition, listening, and the cycle of fourths.
 
-1. **Scale Fingering** (`/fingering`) — RH/LH piano fingering for every major scale. Walk
-   the keys clockwise (sharps) or counterclockwise (flats), or randomize. Hear each scale.
-2. **Circle of Fifths** (`/circle`) — quiz key signatures, relative minors, and fifths by
-   clicking the circle; the answer key plays back.
-3. **Diatonic Chords** (`/diatonic`) — click a key's diatonic chords in order around the
-   circle, with an optional **♭VII** (the Mixolydian/borrowed chord) appended.
+## Practice paths
+
+- **Practice session** (\`/practice\`) — a configurable session with a Hanon warmup, major or minor scales through all twelve keys, and tonic-triad arpeggios in the same cycle. Choose the starting key, hands, tempo, Hanon exercise, and session length. Settings stay in this browser.
+- **Walk the cycle** (\`/cycle\`) — an interactive measuring-tape sequence that repeats after twelve keys. Pick any measure, recall the next key, and reveal it. Use it away from the keyboard.
+- **Focused drills** — scale fingering, circle of fifths, diatonic chords, and ear training remain available from the home page.
+
+The cycle uses common enharmonic spellings so the sequence stays practical to read: C–F–Bb–Eb–Ab–Db–Gb–B–E–A–D–G for major, with the corresponding relative-minor labels A–D–G–C–F–Bb–Eb–G#–C#–F#–B–E.
 
 ## Stack
 
-- **Next.js (App Router) + TypeScript**, deployable on Vercel (fully static).
-- **Tailwind CSS v4** for large, high-contrast, keyboard-navigable UI.
-- **Tone.js** piano sampler for audio. Audio starts on first user gesture.
-- **localStorage** for streaks/progress (no backend).
-- **Vitest** for the music-theory core.
-
-## Project layout
-
-- `lib/theory.ts` — pure, tested core: scale spelling, diatonic triads, ♭VII, circle of
-  fifths, note→MIDI helpers.
-- `lib/fingerings.ts` — standard one-octave major-scale fingerings (RH/LH).
-- `lib/audio.ts` — Tone.js wrapper (`playNote` / `playScale` / `playChord` / `playFeedback`).
-- `lib/quiz.ts` — circle-of-fifths question generators.
-- `lib/storage.ts` — progress persistence.
-- `components/` — `Piano`, `CircleOfFifths`, `QuizShell`, `ScoreBoard`, `Button`.
-- `app/` — home + the three drill routes.
+- Next.js App Router + TypeScript
+- Tailwind CSS v4
+- Tone.js for the existing audio drills
+- localStorage for local practice settings and quiz progress
+- Vitest for the music-theory core
 
 ## Develop
 
-```bash
-npm run dev        # dev server
-npm test           # run the theory unit tests
-npm run build      # production build
-```
-
-## Extending
-
-The shared `QuizShell` + tested `theory.ts` make new drills cheap: add a question generator
-and a route. Natural next steps (from the practice notes that inspired this): diatonic chords
-in each **mode**, dedicated **ear-training** intervals/melodies, and chord-chart reading.
+\`\`\`bash
+npm install
+npm run dev
+npm test
+npm run build
+\`\`\`
