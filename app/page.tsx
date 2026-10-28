@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { MoxieIllustration } from "@/components/MoxieIllustration";
 import { MusicTutorNav } from "@/components/MusicTutorNav";
 
 const DRILLS = [
@@ -33,7 +33,7 @@ export default function Home() {
             </div>
           </div>
           <div>
-          <Image src="/moxie-piano.png" alt="Moxie, a fox with purple glasses, playing a purple piano" width={1672} height={941} priority className="mb-5 h-auto w-full rounded-3xl" />
+          <div className="mb-5"><MoxieIllustration featured /></div>
           <div className="rounded-3xl bg-[var(--panel)] p-7 text-[#fffaf0] sm:p-8">
             <h2 className="text-2xl font-extrabold">Every session has a shape</h2>
             <ol className="mt-5 space-y-4">
