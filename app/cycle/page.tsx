@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MusicTutorNav } from "@/components/MusicTutorNav";
+import { MoxieIllustration } from "@/components/MoxieIllustration";
 import { cycleFor, type PracticeMode } from "@/lib/practice";
 
 function CycleTape({
@@ -90,7 +91,10 @@ export default function CyclePage() {
     <div className="min-h-screen bg-[var(--page)] text-[var(--ink)]">
       <MusicTutorNav active="/cycle" />
       <main className="mx-auto max-w-6xl px-5 py-8 sm:py-12">
-        <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">Walk the cycle</h1>
+        <div className="flex flex-wrap items-center justify-between gap-5">
+          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">Walk the cycle</h1>
+          <MoxieIllustration listening />
+        </div>
         <p className="mt-3 max-w-3xl text-lg leading-7 text-[var(--muted)]">
           A repeating tape for learning the keys away from the piano. Pick a measure, say the next key, then reveal it.
         </p>

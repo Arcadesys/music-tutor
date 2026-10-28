@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MusicTutorNav } from "@/components/MusicTutorNav";
 
 const DRILLS = [
@@ -30,6 +31,8 @@ export default function Home() {
               </Link>
             </div>
           </div>
+          <div>
+          <Image src="/moxie-piano.png" alt="Moxie, a fox with purple glasses, playing a purple piano" width={1672} height={941} priority className="mb-5 h-auto w-full rounded-3xl" />
           <div className="rounded-3xl bg-[var(--panel)] p-7 text-[#fffaf0] sm:p-8">
             <h2 className="text-2xl font-extrabold">Every session has a shape</h2>
             <ol className="mt-5 space-y-4">
@@ -43,6 +46,7 @@ export default function Home() {
             <p className="mt-6 border-t border-[var(--panel-border)] pt-5 text-base leading-7 text-[#dce5e8]">
               Major and minor modes. A configurable starting key. A tempo you can grow into.
             </p>
+          </div>
           </div>
         </section>
 

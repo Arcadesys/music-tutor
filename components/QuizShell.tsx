@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Progress } from "@/lib/storage";
 import { ScoreBoard } from "./ScoreBoard";
+import { MoxieIllustration } from "./MoxieIllustration";
 
 export type Feedback = "correct" | "wrong" | null;
 
@@ -70,6 +71,7 @@ export function QuizShell({
           {controls}
         </div>
       )}
+      <div className="mx-auto mt-4"><MoxieIllustration listening /></div>
     </main>
   );
 }

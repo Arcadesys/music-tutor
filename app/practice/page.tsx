@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TechniqueFingeringGuide } from "@/components/TechniqueFingeringGuide";
 import { MusicTutorNav } from "@/components/MusicTutorNav";
+import { MoxieIllustration } from "@/components/MoxieIllustration";
 import { playPracticeEvents, stopPracticeAudio } from "@/lib/audio";
 import {
   ACTIVITIES,
@@ -233,7 +234,10 @@ export default function PracticePage() {
     <div className="practice min-h-screen bg-[var(--page)] text-[var(--ink)]">
       <MusicTutorNav active="/practice" />
       <main className="mx-auto max-w-6xl px-5 py-8">
-        <h1 className="text-4xl font-extrabold">Your practice session</h1>
+        <div className="flex flex-wrap items-center justify-between gap-5">
+          <h1 className="text-4xl font-extrabold">Your practice session</h1>
+          <MoxieIllustration />
+        </div>
         <p className="mt-4">
           Three keys in depth · {plan.keys.join(" → ")} · {mode}
         </p>
