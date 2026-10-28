@@ -40,8 +40,13 @@ export default function ProgressionsPage() {
     <div className="min-h-screen bg-[var(--page)] text-[var(--ink)]">
       <MusicTutorNav active="/" />
       <main className="mx-auto max-w-4xl px-5 py-8 sm:py-12">
-        <h1 className="text-4xl font-extrabold">Progression recall</h1>
-        <p className="mt-4 max-w-2xl text-lg leading-7 text-[var(--muted)]">Name the chords in order, then reveal the chart and check yourself. No piano needed.</p>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-4xl font-extrabold">Progression recall</h1>
+            <p className="mt-4 max-w-2xl text-lg leading-7 text-[var(--muted)]">Name the chords in order, then reveal the chart and check yourself. No piano needed.</p>
+          </div>
+          <div className="w-full max-w-xs shrink-0"><MoxieIllustration listening /></div>
+        </div>
         <div className="mt-7 flex flex-wrap gap-4">
           <label className="flex flex-col gap-2 font-bold">Mode
             <select className={control} value={mode} onChange={(event) => changeMode(event.target.value as PracticeMode)}>
@@ -72,7 +77,6 @@ export default function ProgressionsPage() {
             {revealed && <div className="mt-6 border-t border-[var(--border)] pt-5"><h3 className="text-xl font-bold">Chord chart</h3><ol className="mt-3 space-y-2 text-lg">{chart.map((bar, index) => <li key={index}><strong>{bar.roman}: {bar.name}</strong> — {bar.chord.notes.join(" – ")}</li>)}</ol><ProgressionCircle chart={chart} /></div>}
           </div>
         </section>
-        <div className="mt-8"><MoxieIllustration listening /></div>
       </main>
     </div>
   );
